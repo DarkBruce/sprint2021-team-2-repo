@@ -21,6 +21,11 @@ class UserCreationForm(forms.Form):
     email = forms.EmailField(label="Enter email")
     password1 = forms.CharField(label="Enter password", widget=forms.PasswordInput)
     password2 = forms.CharField(label="Confirm password", widget=forms.PasswordInput)
+    city = forms.CharField(label="Enter City")
+
+    def clean_city(self):
+        city = self.cleaned_data['city'].upper()
+        return city
 
     def clean_username(self):
         username = self.cleaned_data["username"].lower()
