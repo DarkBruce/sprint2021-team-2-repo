@@ -16,13 +16,6 @@ from restaurant.models import Categories
 
 logger = logging.getLogger(__name__)
 
-"""Sample Object
-{'csrfmiddlewaretoken': 
-['hDmXQpzizeHDwUvUOXO4J4LXvk4b4xN9l44rNftQSMDZK6L44VLB9v4zc74CK4rO'], 
-'email': ['ashoukr@scu.edu'], 'username': ['ahmedreg'], 'password1': ['Pass123!'], 
-'password2': ['Pass123!'], 'phone': ['4085691957'], 'address1': ['random'], 
-'address2': ['random2'], 'city': ['san diego'], 'zip_code': ['95126'], 'state': ['ca']}
-"""
 class UserProfileCreationForm(forms.Form):
     STATE_CHOICES = [
         ("Alabama", "Alabama"),
@@ -87,12 +80,6 @@ class UserProfileCreationForm(forms.Form):
     def __init__(self, user, data):
         self.user = user
         self.data = data
-        # self.phone = data['phone']
-        # self.address1 = data['address1']
-        # self.address2 = data['address2']
-        # self.city = data['city']
-        # self.zip_code = data['zip_code ']
-        # self.state = data['state']
         self.user_profile = User_Profile.objects.get(user=self.user)
         super(UserProfileCreationForm, self).__init__(data=data)
 
@@ -102,23 +89,11 @@ class UserProfileCreationForm(forms.Form):
         self.user_profile.address2 = self.data['address2']
         self.user_profile.city = self.data['city']
         self.user_profile.zip_code = self.data['zip_code']
-        # state = forms.ChoiceField(label="state", choices=STATE_CHOICES)
+
         self.user_profile.state = self.data['state']
         self.user_profile.save()
         return self.user_profile
-"""
-    password_current = forms.CharField(
-        label="password_current", widget=forms.PasswordInput
-    )
-    password_new = forms.CharField(label="password_new", widget=forms.PasswordInput)
-    password_confirm = forms.CharField(
-        label="password_confirm", widget=forms.PasswordInput
-    )
 
-    def __init__(self, user, data=None):
-        self.user = user
-        super(UpdatePasswordForm, self).__init__(data=data)
-"""
 class UserCreationForm(forms.Form):
     username = forms.CharField(label="Enter Username", min_length=4, max_length=150)
     email = forms.EmailField(label="Enter email")
