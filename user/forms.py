@@ -16,6 +16,7 @@ from restaurant.models import Categories
 
 logger = logging.getLogger(__name__)
 
+
 class UserProfileCreationForm(forms.Form):
     STATE_CHOICES = [
         ("Alabama", "Alabama"),
@@ -84,15 +85,16 @@ class UserProfileCreationForm(forms.Form):
         super(UserProfileCreationForm, self).__init__(data=data)
 
     def save(self, commit=True):
-        self.user_profile.phone = self.data['phone']
-        self.user_profile.address1 = self.data['address1']
-        self.user_profile.address2 = self.data['address2']
-        self.user_profile.city = self.data['city']
-        self.user_profile.zip_code = self.data['zip_code']
+        self.user_profile.phone = self.data["phone"]
+        self.user_profile.address1 = self.data["address1"]
+        self.user_profile.address2 = self.data["address2"]
+        self.user_profile.city = self.data["city"]
+        self.user_profile.zip_code = self.data["zip_code"]
 
-        self.user_profile.state = self.data['state']
+        self.user_profile.state = self.data["state"]
         self.user_profile.save()
         return self.user_profile
+
 
 class UserCreationForm(forms.Form):
     username = forms.CharField(label="Enter Username", min_length=4, max_length=150)
