@@ -57,24 +57,16 @@ def user_login(request):
 
 
 def register(request):
-    print('hellooooooooooo')
-    print('request.POST', request.POST)
     if request.user.is_authenticated:
         return redirect("index")
     if request.method == "POST":
         form = UserCreationForm(request.POST)
-        
-        print(form)
         if form.is_valid():
             user = form.save()
             user.is_active = False
             user.save()
-
             form2 = UserProfileCreationForm(user=user, data=request.POST)
-            if form2.is_valid(): form2.save()
-
-
-
+            form2.save()
             send_verification_email(request, form.cleaned_data.get("email"))
             return render(request=request, template_name="sent_verification_email.html")
     else:

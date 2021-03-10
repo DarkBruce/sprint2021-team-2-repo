@@ -16,7 +16,7 @@ from restaurant.models import Categories
 
 logger = logging.getLogger(__name__)
 
-"""
+"""Sample Object
 {'csrfmiddlewaretoken': 
 ['hDmXQpzizeHDwUvUOXO4J4LXvk4b4xN9l44rNftQSMDZK6L44VLB9v4zc74CK4rO'], 
 'email': ['ashoukr@scu.edu'], 'username': ['ahmedreg'], 'password1': ['Pass123!'], 
@@ -28,33 +28,23 @@ class UserProfileCreationForm(forms.Form):
     def __init__(self, user, data):
         self.user = user
         self.data = data
-        self.phone = self.data['phone']
-        self.address1 = self.data['address1']
-        self.address2 = self.data['address2']
-        self.city = self.data['city']
-        self.zip_code = self.data['zip_code']
-        self.state = self.data['state']
-        
-
+        self.phone = data['phone']
+        self.address1 = data['address1']
+        self.address2 = data['address2']
+        self.city = data['city']
+        self.zip_code = data['zip_code']
+        self.state = data['state']
         self.user_profile = User_Profile.objects.get(user=self.user)
-        print('user_profile', self.user_profile)
 
     def save(self, commit=True):
+        self.user_profile.phone = self.phone
+        self.user_profile.address1 = self.address1
+        self.user_profile.address2 = self.address2
         self.user_profile.city = self.city
-
+        self.user_profile.zip_code = self.zip_code
+        self.user_profile.state = self.state
         self.user_profile.save()
-
         return self.user_profile
-
-    # def save(self, commit=True):
-    #     user get_user_model().objects.
-
-    #     user = get_user_model().objects.create_user(
-    #         city=self.cleaned_data["username"],
-    #     )
-    #     user.set_password(self.cleaned_data["password1"])
-
-    #     return user
 
 class UserCreationForm(forms.Form):
     username = forms.CharField(label="Enter Username", min_length=4, max_length=150)
