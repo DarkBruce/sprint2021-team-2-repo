@@ -24,38 +24,106 @@ logger = logging.getLogger(__name__)
 'address2': ['random2'], 'city': ['san diego'], 'zip_code': ['95126'], 'state': ['ca']}
 """
 class UserProfileCreationForm(forms.Form):
+    STATE_CHOICES = [
+        ("Alabama", "Alabama"),
+        ("Alaska", "Alaska"),
+        ("Arizona", "Arizona"),
+        ("Arkansas", "Arkansas"),
+        ("California", "California"),
+        ("Colorado", "Colorado"),
+        ("Connecticut", "Connecticut"),
+        ("Delaware", "Delaware"),
+        ("District of Columbia", "District of Columbia"),
+        ("Florida", "Florida"),
+        ("Georgia", "Georgia"),
+        ("Hawaii", "Hawaii"),
+        ("Idaho", "Idaho"),
+        ("Illinois", "Illinois"),
+        ("Indiana", "Indiana"),
+        ("Iowa", "Iowa"),
+        ("Kansas", "Kansas"),
+        ("Kentucky", "Kentucky"),
+        ("Louisiana", "Louisiana"),
+        ("Maine", "Maine"),
+        ("Montana", "Montana"),
+        ("Nebraska", "Nebraska"),
+        ("Nevada", "Nevada"),
+        ("New Hampshire", "New Hampshire"),
+        ("New Jersey", "New Jersey"),
+        ("New Mexico", "New Mexico"),
+        ("New York", "New York"),
+        ("North Carolina", "North Carolina"),
+        ("North Dakota", "North Dakota"),
+        ("Ohio", "Ohio"),
+        ("Oklahoma", "Oklahoma"),
+        ("Oregon", "Oregon"),
+        ("Maryland", "Maryland"),
+        ("Massachusetts", "Massachusetts"),
+        ("Michigan", "Michigan"),
+        ("Minnesota", "Minnesota"),
+        ("Mississippi", "Mississippi"),
+        ("Missouri", "Missouri"),
+        ("Pennsylvania", "Pennsylvania"),
+        ("Rhode Island", "Rhode Island"),
+        ("South Carolina", "South Carolina"),
+        ("South Dakota", "South Dakota"),
+        ("Tennessee", "Tennessee"),
+        ("Texas", "Texas"),
+        ("Utah", "Utah"),
+        ("Vermont", "Vermont"),
+        ("Virginia", "Virginia"),
+        ("Washington", "Washington"),
+        ("West Virginia", "West Virginia"),
+        ("Wisconsin", "Wisconsin"),
+        ("Wyoming", "Wyoming"),
+    ]
+
+    address1 = forms.CharField(label="address1")
+    address2 = forms.CharField(label="address2")
+    city = forms.CharField(label="city")
+    zip_code = forms.CharField(label="zip_code")
+    state = forms.ChoiceField(label="state", choices=STATE_CHOICES)
 
     def __init__(self, user, data):
         self.user = user
         self.data = data
-        self.phone = data['phone']
-        self.address1 = data['address1']
-        self.address2 = data['address2']
-        self.city = data['city']
-        self.zip_code = data['zip_code']
-        self.state = data['state']
+        # self.phone = data['phone']
+        # self.address1 = data['address1']
+        # self.address2 = data['address2']
+        # self.city = data['city']
+        # self.zip_code = data['zip_code ']
+        # self.state = data['state']
         self.user_profile = User_Profile.objects.get(user=self.user)
+        super(UserProfileCreationForm, self).__init__(data=data)
 
     def save(self, commit=True):
-        self.user_profile.phone = self.phone
-        self.user_profile.address1 = self.address1
-        self.user_profile.address2 = self.address2
-        self.user_profile.city = self.city
-        self.user_profile.zip_code = self.zip_code
-        self.user_profile.state = self.state
+        self.user_profile.phone = self.data['phone']
+        self.user_profile.address1 = self.data['address1']
+        self.user_profile.address2 = self.data['address2']
+        self.user_profile.city = self.data['city']
+        self.user_profile.zip_code = self.data['zip_code']
+        # state = forms.ChoiceField(label="state", choices=STATE_CHOICES)
+        self.user_profile.state = self.data['state']
         self.user_profile.save()
         return self.user_profile
+"""
+    password_current = forms.CharField(
+        label="password_current", widget=forms.PasswordInput
+    )
+    password_new = forms.CharField(label="password_new", widget=forms.PasswordInput)
+    password_confirm = forms.CharField(
+        label="password_confirm", widget=forms.PasswordInput
+    )
 
+    def __init__(self, user, data=None):
+        self.user = user
+        super(UpdatePasswordForm, self).__init__(data=data)
+"""
 class UserCreationForm(forms.Form):
     username = forms.CharField(label="Enter Username", min_length=4, max_length=150)
     email = forms.EmailField(label="Enter email")
     password1 = forms.CharField(label="Enter password", widget=forms.PasswordInput)
     password2 = forms.CharField(label="Confirm password", widget=forms.PasswordInput)
-    city = forms.CharField(label="Enter City")
-
-    def clean_city(self):
-        city = self.cleaned_data['city'].upper()
-        return city
 
     def clean_username(self):
         username = self.cleaned_data["username"].lower()
