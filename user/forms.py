@@ -82,16 +82,21 @@ class UserProfileCreationForm(forms.Form):
         self.user = user
         self.data = data
         self.user_profile = User_Profile.objects.get(user=self.user)
-        super(UserProfileCreationForm, self).__init__(data=data)
+        # super(UserProfileCreationForm, self).__init__(data=data)
 
     def save(self, commit=True):
-        self.user_profile.phone = self.data["phone"]
-        self.user_profile.address1 = self.data["address1"]
-        self.user_profile.address2 = self.data["address2"]
-        self.user_profile.city = self.data["city"]
-        self.user_profile.zip_code = self.data["zip_code"]
-
-        self.user_profile.state = self.data["state"]
+        if 'phone' in self.data:
+            self.user_profile.phone = self.data["phone"]
+        if 'address1' in self.data:
+            self.user_profile.address1 = self.data["address1"]
+        if 'address2' in self.data:
+            self.user_profile.address2 = self.data["address2"]
+        if 'city' in self.data:
+            self.user_profile.city = self.data["city"]
+        if 'zip_code' in self.data:
+            self.user_profile.zip_code = self.data["zip_code"]
+        if 'state' in self.data:
+            self.user_profile.state = self.data["state"]
         self.user_profile.save()
         return self.user_profile
 
