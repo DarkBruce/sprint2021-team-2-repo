@@ -12,6 +12,12 @@ from .forms import (
     QuestionnaireForm,
     SearchFilterForm,
 )
+
+from user.models import User_Profile
+# from user.forms import 
+# from '../user/forms' import UserQuestionnaireForm
+# from '../user/models' import UserModel
+
 from .utils import (
     query_yelp,
     query_inspection_record,
