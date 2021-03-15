@@ -14,6 +14,7 @@ from .forms import (
 )
 
 from user.models import User_Profile
+from user.forms import UserQuestionaireForm
 # from user.forms import 
 # from '../user/forms' import UserQuestionnaireForm
 # from '../user/models' import UserModel
@@ -44,15 +45,16 @@ logger = logging.getLogger(__name__)
 
 
 def get_restaurant_profile(request, restaurant_id):
-
-    if request.method == "POST" and "questionnaire_form" in request.POST:
+    
+    if request.method == "POST" and "content" in request.POST:
         print('POSTTT', request.method, request.POST)
-        form = QuestionnaireForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "success")
-            url = reverse("restaurant:profile", args=[restaurant_id])
-            return HttpResponseRedirect(url)
+        
+        form = UserQuestionaireForm(request.POST, restaurant_id)
+        # if form.is_valid():
+        form.save()
+        messages.success(request, "success")
+        url = reverse("restaurant:profile", args=[restaurant_id])
+        return HttpResponseRedirect(url)
 
     try:
         csv_file = get_csv_from_github()
