@@ -13,7 +13,6 @@ class QuestionnaireForm(forms.Form):
     employee_mask = forms.CharField(label="employee_mask")
     capacity_compliant = forms.CharField(label="capacity")
     distance_compliant = forms.CharField(label="distance")
-    
 
     def save(self, commit=True):
         questionnaire = UserQuestionnaire.objects.create(

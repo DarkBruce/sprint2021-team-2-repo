@@ -15,7 +15,8 @@ from .forms import (
 
 from user.models import User_Profile
 from user.forms import UserQuestionaireForm
-# from user.forms import 
+
+# from user.forms import
 # from '../user/forms' import UserQuestionnaireForm
 # from '../user/models' import UserModel
 
@@ -45,10 +46,10 @@ logger = logging.getLogger(__name__)
 
 
 def get_restaurant_profile(request, restaurant_id):
-    
+
     if request.method == "POST" and "content" in request.POST:
-        print('POSTTT', request.method, request.POST)
-        
+        print("POSTTT", request.method, request.POST)
+
         form = UserQuestionaireForm(request.POST, restaurant_id)
         # if form.is_valid():
         form.save()
