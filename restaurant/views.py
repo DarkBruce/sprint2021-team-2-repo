@@ -37,10 +37,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def post_review(request):
-    print(request.POST)
-
-
 def get_restaurant_profile(request, restaurant_id):
 
     if request.method == "POST" and "questionnaire_form" in request.POST:
