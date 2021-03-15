@@ -9,11 +9,11 @@ from .models import Restaurant
 
 from django.views.decorators.csrf import csrf_exempt
 from .forms import (
-    QuestionnaireForm,
+    # QuestionnaireForm,
     SearchFilterForm,
 )
 
-from user.models import User_Profile
+# from user.models import User_Profile
 from user.forms import UserQuestionaireForm
 
 # from user.forms import
