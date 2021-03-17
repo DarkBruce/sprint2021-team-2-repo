@@ -31,6 +31,7 @@ from .utils import (
     questionnaire_report,
     questionnaire_statistics,
 )
+from user.models import Review
 
 import json
 
@@ -1020,3 +1021,21 @@ class GetFilteredRestaurantsTests(TestCase):
         )
 
         self.assertEqual(details.business_id, filtered_restaurants[0].business_id)
+
+
+@mock.patch("user.models.Review.objects")
+class EditCommentTests(BaseTest):
+    def test_edit_comment(self, queryset):
+        queryset.delete.return_value = None
+        queryset.filter.return_value = queryset
+        response = self.c.get(
+            "/restaurant/profile/restaurant_id/comment/comment_id/delete"
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_delete_comment(self, queryset):
+        queryset.get.return_value = mock.Mock(spec=Review)
+        response = self.c.get(
+            "/restaurant/profile/restaurant_id/comment/comment_id/edit"
+        )
+        self.assertEqual(response.status_code, 302)
