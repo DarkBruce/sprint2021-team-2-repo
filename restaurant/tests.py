@@ -422,6 +422,21 @@ class UserQuestionnaireFormTests(BaseTest):
         form = QuestionnaireForm(self.form_valid)
         self.assertTrue(form.is_valid())
 
+    def leave_rating(self):
+        self.form = {
+            "content": "test",
+            "rating": "2",
+            "rating_safety": "1",
+            "rating_entry": "1",
+            "rating_door": "1",
+            "rating_table": "1",
+            "rating_bathroom": "1",
+            "rating_path": "1",
+        }
+        form = QuestionnaireForm(self.form)
+        response = self.c.post("/restaurant/profile/1/", form)
+        self.assertEqual(response.status_code, 302)
+
     def test_form_submission(self):
         create_restaurant(
             "random_name",
@@ -1036,6 +1051,6 @@ class EditCommentTests(BaseTest):
     def test_delete_comment(self, queryset):
         queryset.get.return_value = mock.Mock(spec=Review)
         response = self.c.get(
-            "/restaurant/profile/restaurant_id/comment/comment_id/edit"
+            "/restaurant/profile/restaurant_id/comment/comment_id/put"
         )
         self.assertEqual(response.status_code, 302)
