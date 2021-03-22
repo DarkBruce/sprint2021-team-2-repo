@@ -222,6 +222,13 @@ class TestContactForm(BaseTest):
         self.assertFalse(feedback_form.is_valid())
 
 
+class TestFacingPage(BaseTest):
+    def test_facing_page(self):
+        self.c.force_login(self.dummy_user)
+        response = self.c.get("/user/facing_page/1")
+        self.assertEqual(response.status_code, 200)
+
+
 class TestUtils(BaseTest):
     class MockRequest:
         host_name = "localhost"
