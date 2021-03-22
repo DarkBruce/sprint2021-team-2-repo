@@ -99,9 +99,7 @@ def get_restaurant_profile(request, restaurant_id):
                 "content",
             )
         )
-        # print('internal reviewsss', internal_reviews)
         for idx in range(len(internal_reviews)):
-            # print(internal_reviews[idx], end='\n\n\n')
             comments = Comment.objects.filter(review_id=internal_reviews[idx]["id"])
             # get photo afterwards
             comments = [
@@ -114,8 +112,6 @@ def get_restaurant_profile(request, restaurant_id):
                 for el in comments
             ]
             internal_reviews[idx]["comments"] = comments
-
-            print(internal_reviews[idx], end="\n\n\n")
         reviews_count, ratings_avg, ratings_distribution = get_reviews_stats(
             internal_reviews
         )
@@ -183,7 +179,6 @@ def edit_review(request, restaurant_id, comment_id, action):
 def edit_comment(request, restaurant_id, review_id):
     review = Review.objects.get(pk=review_id)
     comment = Comment(user=request.user, review=review)
-    comm = {"comment": comment}
     comment.text = request.GET.get("text")
     comment.time = datetime.now()
     comment.save()
