@@ -215,44 +215,6 @@ def profile(request):
     )
 
 
-# @login_required()
-def account_details(request):
-    if not request.user.is_authenticated:
-        return redirect("user:login")
-
-    user = request.user
-    if request.method == "POST":
-        form = ProfileUpdateForm(user=user, data=request.POST)
-        if form.is_valid():
-            profile_pic = (
-                form.save_image(request.FILES["profile-pic"])
-                if "profile-pic" in request.FILES
-                else None
-            )
-            User_Profile.objects.update_or_create(
-                user=user, defaults={"photo": profile_pic}
-            )
-            form.save()
-            return redirect("user:account_details")
-    user_profile = User_Profile.objects.get(user=user)
-    favorite_restaurant_list = user.favorite_restaurants.all()
-    user_pref_list = user.preferences.all()
-    user_pref_list_json = []
-    for pref in user_pref_list:
-        pref_dic = model_to_dict(pref)
-        user_pref_list_json.append(pref_dic)
-    return render(
-        request=request,
-        template_name="profile.html",
-        context={
-            "favorite_restaurant_list": favorite_restaurant_list,
-            "user_pref": user_pref_list,
-            "user_pref_json": json.dumps(user_pref_list_json, cls=DjangoJSONEncoder),
-            "user_profile": user_profile,
-        },
-    )
-
-
 def reset_password_link(request, base64_id, token):
     if request.method == "POST":
 
