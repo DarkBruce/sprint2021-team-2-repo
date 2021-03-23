@@ -39,6 +39,8 @@ logger = logging.getLogger(__name__)
 
 
 def user_login(request):
+    print('REQUESTTT')
+    # if get_user_model().objects.filter(email=request.POST["email"]).exists()
     if request.user.is_authenticated:
         return redirect("index")
     if request.method == "POST":
@@ -68,7 +70,7 @@ def user_login(request):
 def register(request):
     if request.user.is_authenticated:
         return redirect("index")
-    if request.method == "POST":
+    if request.method == "POST" and not get_user_model().objects.filter(email=request.POST["email"]).exists():
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
