@@ -227,6 +227,10 @@ class TestFacingPage(BaseTest):
         self.c.force_login(self.dummy_user)
         response = self.c.get("/user/facing_page/1")
         self.assertEqual(response.status_code, 200)
+    
+    def test_no_user_logged_in(self):
+        response = self.c.get("/user/facing_page/1")
+        self.assertEqual(response.status_code, 302)
 
 
 class TestUtils(BaseTest):
