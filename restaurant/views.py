@@ -53,11 +53,11 @@ logger = logging.getLogger(__name__)
 def get_restaurant_profile(request, restaurant_id):
 
     if request.method == "POST" and "content" in request.POST:
-        form = UserQuestionaireForm(request.POST, restaurant_id)
+        form = UserQuestionaireForm(request.POST, request.FILES, restaurant_id)
         url = reverse("restaurant:profile", args=[restaurant_id])
         # if form.is_valid():
         form.save()
-        messages.success(request, "success")
+        messages.success(request, "Thank you for your review!")
         return HttpResponseRedirect(url)
         # else:
         #     messages.error(request, "invalid review content!")
