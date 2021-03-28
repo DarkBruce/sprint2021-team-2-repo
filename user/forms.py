@@ -44,9 +44,10 @@ class UserQuestionaireForm(forms.Form):
         self.rating_path = data["rating_path"]
         # self.restaurant_business_id = data.restaurant_business_id # not sure if needed
         self.content = data["content"]
-        self.image1 = self.cleaned_data["image1"]
-        self.image2 = self.cleaned_data["image2"]
-        self.image3 = self.cleaned_data["image3"]
+        self.image1 = data["image1"] if "image1" in data else None
+        self.image2 = data["image2"] if "image2" in data else None
+        self.image3 = data["image3"] if "image3" in data else None
+        print('iiiii', self.image1, data)
 
     def save(self):
         user = get_user_model().objects.get(pk=self.user_id)
