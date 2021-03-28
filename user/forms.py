@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class UserQuestionaireForm(forms.Form):
-
     def __init__(self, data, files, restaurant_id):
         self.restaurant_id = restaurant_id
         self.user_id = data["user_id"]
