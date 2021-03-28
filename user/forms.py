@@ -22,6 +22,16 @@ logger = logging.getLogger(__name__)
 
 
 class UserQuestionaireForm(forms.Form):
+    image1 = forms.ImageField(
+        label="Image-1",
+    )
+    image2 = forms.ImageField(
+        label="Image-2",
+    )
+    image3 = forms.ImageField(
+        label="Image-3",
+    )
+
     def __init__(self, data, restaurant_id):
         self.restaurant_id = restaurant_id
         self.user_id = data["user_id"]
@@ -34,6 +44,9 @@ class UserQuestionaireForm(forms.Form):
         self.rating_path = data["rating_path"]
         # self.restaurant_business_id = data.restaurant_business_id # not sure if needed
         self.content = data["content"]
+        self.image1 = self.cleaned_data["image1"]
+        self.image2 = self.cleaned_data["image2"]
+        self.image3 = self.cleaned_data["image3"]
 
     def save(self):
         user = get_user_model().objects.get(pk=self.user_id)
@@ -47,6 +60,9 @@ class UserQuestionaireForm(forms.Form):
             rating_path=self.rating_path,
             content=self.content,
             restaurant_id=self.restaurant_id,
+            image1=self.image1,
+            image2=self.image2,
+            image3=self.image3,
         )
         ret.save()
         return ret
