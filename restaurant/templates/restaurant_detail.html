@@ -936,6 +936,18 @@ class RatingReview extends HTMLElement {
     this.comments.className = 'text-muted text-sm';
     this.comments.innerText = this.getAttribute('review-text');
 
+    this.image1 = document.createElement('img');
+    this.image1.className= 'image1';
+    this.image1.src = this.getAttribute('image1');
+
+    this.image2 = document.createElement('img');
+    this.image2.className= 'image2';
+    this.image2.src = this.getAttribute('image2');
+
+    this.image3 = document.createElement('img');
+    this.image3.className= 'image3';
+    this.image3.src = this.getAttribute('image3');
+
     this.serviceHint = document.createElement('em');
     this.serviceHint.setAttribute('style', 'display: none; font-size: 0.6rem; line-height: 0.8rem;');
     this.serviceHint.setAttribute('class', 'text-secondary');
@@ -953,7 +965,7 @@ class RatingReview extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['profile-img', 'profile-img-alt', 'profile-url', 'time-created', 'user-name', 'user-rating', 'review-text', 'author-id', 'hidden-flag'];
+    return ['profile-img', 'profile-img-alt', 'profile-url', 'time-created', 'user-name', 'user-rating', 'review-text', 'author-id', 'hidden-flag', 'image1', 'image2', 'image3'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -1226,6 +1238,11 @@ internalReviews.forEach(review => {
   ratingReview.setAttribute('review-id', review.id);
   ratingReview.setAttribute('restaurant-id', restaurantId);
   ratingReview.setAttribute('author-id', review.user);
+  ratingReview.setAttribute('author-id', review.user);
+  ratingReview.setAttribute('image1', 'https://dineline.s3.amazonaws.com/media/' + review.image1);
+  ratingReview.setAttribute('image2', 'https://dineline.s3.amazonaws.com/media/' + review.image2);
+  ratingReview.setAttribute('image3', 'https://dineline.s3.amazonaws.com/media/' + review.image3);
+
   if (review.hidden) {
     ratingReview.setAttribute('hidden-flag', review.hidden);
   } else {
