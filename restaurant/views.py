@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponseBadRequest
 from django.urls import reverse
@@ -105,8 +106,12 @@ def get_restaurant_profile(request, restaurant_id):
                 "rating_path",
                 "time",
                 "content",
+                "image1",
+                "image2",
+                "image3",
             )
         )
+
         for idx in range(len(internal_reviews)):
             comments = Comment.objects.filter(review_id=internal_reviews[idx]["id"])
             # get photo afterwards
@@ -145,6 +150,7 @@ def get_restaurant_profile(request, restaurant_id):
                 "distribution": ratings_distribution,
                 "statistics_dict": statistics_dict,
                 "user_id": request.user.id,
+                "media_url_prefix": settings.MEDIA_URL,
             }
         else:
             parameter_dict = {
@@ -162,6 +168,7 @@ def get_restaurant_profile(request, restaurant_id):
                 "reviews_count": reviews_count,
                 "ratings_avg": ratings_avg,
                 "distribution": ratings_distribution,
+                "media_url_prefix": settings.MEDIA_URL,
             }
 
         return render(request, "restaurant_detail.html", parameter_dict)
