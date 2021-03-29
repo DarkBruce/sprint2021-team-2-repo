@@ -1,0 +1,319 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<section class="py-5">
+  <div class="container">
+    <!-- Breadcrumbs -->
+    <ol class="breadcrumb pl-0  justify-content-start">
+      <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+      <li class="breadcrumb-item active">Reported Comments</li>
+    </ol>
+  
+        <div class="card shadow">
+          <div class="card-body">
+              <h6>
+                  <span class="text-primary">Reviews</span> Management
+              </h6>
+              <span id="internal_review"></span>
+          </div>
+        </div>
+        <div class="card shadow">
+            <div class="card-body">
+                <h6>
+                    <span class="text-primary">Comments</span> Management
+                </h6>
+                <span id="internal_comment"></span>
+            </div>
+          </div>
+
+
+  </div>
+  </div>
+</section>
+
+<script>
+const DEFAULT_AVATAR = 'https://s3-media3.fl.yelpcdn.com/photo/O8CmQtEeOUvMTFk0iMn5sw/o.jpg';
+const isNull = el => el === 'null' || el === 'None' || el === null || el === undefined;
+const userId = Number('{{ user_id | safe }}');
+  class RatingReview extends HTMLElement {
+  constructor () {
+    super();
+    this.attachShadow({ mode: 'open' });
+
+    this.addStyles();
+
+    this.rootDiv = document.createElement('div');
+
+    this.container = document.createElement('div');
+    this.container.className = 'media d-block d-sm-flex review';
+    this.container.setAttribute('style', 'border-bottom: 0; padding-bottom: 0;')
+
+    // left side
+    const userProfile = document.createElement('div');
+    userProfile.className = 'text-md-center mr-4 mr-xl-5';
+    this.avatar = document.createElement('img');
+    this.avatar.className = 'd-block avatar avatar-xl p-2 mb-2';
+
+    this.avatar.src = this.getAttribute('profile-img') || DEFAULT_AVATAR;
+    this.avatar.alt = this.getAttribute('profile-img-alt') || '';
+    this.createRatingTimestamp = document.createElement('span');
+    this.createRatingTimestamp.className = 'text-uppercase text-muted text-sm';
+    this.createRatingTimestamp.innerText = this.getAttribute('time-created') || '';
+    
+    userProfile.appendChild(this.avatar);
+    userProfile.appendChild(this.createRatingTimestamp);
+
+    // right side
+    const ratingBody = document.createElement('div');
+    ratingBody.className = 'media-body';
+    
+    // author link
+    const author = document.createElement('h6');
+    author.className = 'mt-2 mb-1';
+
+    this.authorProfileLink = document.createElement('a');
+    this.authorProfileLink.href = this.getAttribute('profile-url') || DEFAULT_AVATAR;
+    this.authorProfileLink.innerText = this.getAttribute('user-name') || '';
+
+    author.appendChild(this.authorProfileLink);
+    ratingBody.appendChild(author);
+
+    // rating stars
+    this.ratingStars = document.createElement('div');
+    const rating = Number(this.getAttribute('user-rating') || '');
+    for (let i = 0; i < 5; i++) {
+      const star = document.createElement('i');
+      star.className = 'fa fa-xs fa-star';
+      star.classList.add(i < rating ? 'text-primary' : 'text-gray-200');
+      this.ratingStars.appendChild(star);
+    }
+      ratingBody.appendChild(this.ratingStars);
+    
+    
+
+    // comments
+    this.comments = document.createElement('p');
+    this.comments.setAttribute('style', 'display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;');
+    this.comments.className = 'text-muted text-sm';
+    this.comments.innerText = this.getAttribute('review-text');
+    
+    ratingBody.appendChild(this.comments);
+
+    this.container.appendChild(userProfile);
+    this.container.appendChild(ratingBody);
+
+    this.rootDiv.appendChild(this.container);
+    
+    this.shadowRoot.appendChild(this.rootDiv);
+  }
+
+  static get observedAttributes() {
+    return ['profile-img', 'profile-img-alt', 'profile-url', 'time-created', 'user-name', 'user-rating', 'review-text', 'author-id'];
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === 'profile-img') {
+      this.avatar.setAttribute('src', isNull(newValue) ? DEFAULT_AVATAR : newValue);
+    } else if (name === 'profile-img-alt') {
+      this.avatar.setAttribute('alt', newValue || '');
+    } else if (name === 'time-created') {
+      this.createRatingTimestamp.innerText = newValue || '';
+    } else if (name === 'profile-url') {
+      this.authorProfileLink.setAttribute('href', newValue || '');
+    } else if (name === 'user-name') {
+      this.authorProfileLink.innerText = newValue || '';
+    } else if (name === 'user-rating') {
+      const rating = Number(newValue || 0);
+      new Array().forEach.call(this.ratingStars.children, (el, index) => {
+        if (index < rating) {
+          el.classList.replace('text-gray-200', 'text-primary');
+        } else {
+          el.classList.replace('text-primary', 'text-gray-200');
+        }
+      });
+    } else if (name === 'review-text') {
+      this.comments.innerText = newValue || '';
+    } else if (name === 'author-id') {
+      this.attachOptionButton({ authorId: Number(this.getAttribute('author-id') || '') });
+    }
+  }
+
+  attachOptionButton ({ authorId }) {
+    if (!this.optionButton) {
+      // option button
+      const optionButtonWrapper = document.createElement('div');
+      optionButtonWrapper.setAttribute('class', 'dropdown');
+
+      this.optionButton = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      this.optionButton.setAttribute('viewBox', '0 0 24 24');
+      this.optionButton.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      this.optionButton.setAttribute('style', 'display: inline-block; width: 1rem; height: 1rem; cursor: pointer;');
+      this.optionButton.setAttribute('class', 'dropdown-toggle');
+      this.optionButton.setAttribute('type', 'button');
+
+      const optionWrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const optionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      optionPath.setAttribute('d', 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z');
+      optionWrapper.appendChild(optionPath);
+      this.optionButton.appendChild(optionWrapper);
+
+      // dropdown button wrapper
+      this.dropdownWrapper = document.createElement('div');
+      this.dropdownWrapper.setAttribute('class', 'dropdown-menu p-0');
+
+      this.deleteForm = document.createElement('form');
+      this.deleteForm.setAttribute('action', `/restaurant/profile/${this.getAttribute('restaurant-id')}/comment/${this.getAttribute('review-id')}/delete`);
+
+      optionButtonWrapper.appendChild(this.optionButton);
+      optionButtonWrapper.appendChild(this.dropdownWrapper);
+      optionButtonWrapper.appendChild(this.deleteForm);
+      optionButtonWrapper.addEventListener('mouseover', () => {
+        this.dropdownWrapper.classList.add('show');
+      });
+      this.dropdownWrapper.addEventListener('mouseout', () => {
+        this.dropdownWrapper.classList.remove('show');
+      });
+
+      this.container.appendChild(optionButtonWrapper);
+    }
+
+    new Array().forEach.call(this.dropdownWrapper.children, el => this.dropdownWrapper.removeChild(el));
+    ['Delete', 'Hide'].forEach((el, index) => {
+      const anchor = document.createElement('a');
+      anchor.setAttribute('class', 'dropdown-item small py-2');
+      anchor.setAttribute('href', '#');      
+      anchor.innerText = el;
+      if (index === 0) {
+        anchor.addEventListener('click', () => this.deleteForm.submit());
+      } else if (index === 1) {
+        // hide the comment/review from others in restaurant detail page
+      } 
+      this.dropdownWrapper.appendChild(anchor);
+    });
+  }
+
+  /**
+   * @params {profile} string - profile picture
+   * @params {text} string - comment
+   * @params {author} string - comment author
+   * @params {commentId} string - comment id
+   */
+  renderReplies ({ profile = DEFAULT_AVATAR, text = '', author = '', commentId = '' }) {
+    const commentContainer = document.createElement('div');
+    commentContainer.className = 'd-flex';
+    commentContainer.setAttribute('style', 'padding-left: 12%; align-items: baseline;');
+
+    const line = document.createElement('div');
+    line.setAttribute('style', 'border-bottom: 2px solid #e7e7e7; border-left: 2px solid #e7e7e7; border-radius: 5px; height: 40px; width: 50px;');
+
+    const replyContainer = document.createElement('div');
+    replyContainer.setAttribute('style', 'width: calc(100% - 50px)');
+    
+    const replyAvatar = document.createElement('img');
+    replyAvatar.setAttribute('style', 'width: 40px; height: 40px; border-radius: 50%;');
+    replyAvatar.setAttribute('src', profile);
+
+    const replyBox = document.createElement('div');
+    replyBox.setAttribute('style', 'display: inline-block; margin-left: 1rem; width: 70%; vertical-align: middle;');
+    replyBox.setAttribute('class', 'text-muted text-sm text-truncate');
+    replyBox.innerText = text;
+
+    replyContainer.appendChild(replyAvatar);
+    replyContainer.appendChild(replyBox);
+    
+    const deleteForm = document.createElement('form');
+    deleteForm.setAttribute('method', 'get');
+    deleteForm.setAttribute('action', `/restaurant/profile/${this.getAttribute('restaurant-id')}rev/comment_delete/${commentId}`);
+    deleteForm.setAttribute('class', 'd-inline-block');
+    
+    const deleteButton = document.createElement('span');
+    deleteButton.setAttribute('class', 'fas fa-backspace text-primary btn btn-sm ml-1');
+    deleteButton.addEventListener('click', () => {
+      deleteForm.submit();
+    });
+    deleteForm.appendChild(deleteButton);
+    
+
+    replyContainer.appendChild(deleteForm);
+
+    commentContainer.appendChild(line);
+    commentContainer.appendChild(replyContainer);
+
+    this.rootDiv.appendChild(commentContainer);
+  }
+
+  // add web component styles
+  addStyles () {
+    const styleLinks = [
+      'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css',
+      '/static/css/style.default.452e11c7.css',
+      '/static/css/all.css'
+    ]
+
+    styleLinks.forEach(el => {
+      const styles = document.createElement('link');
+      styles.setAttribute('rel', 'stylesheet');
+      styles.setAttribute('href', el);
+      this.shadowRoot.appendChild(styles);
+    });
+  }
+};
+customElements.define('rating-review', RatingReview);
+
+const internalReviews = {{ internal_reviews | safe }};
+internalReviews.forEach(review => {
+  const reviewWrapper = document.getElementById('internal_review');
+  const ratingReview = document.createElement('rating-review');
+  ratingReview.setAttribute('profile-img', review.user__user_profile__photo);
+  ratingReview.setAttribute('profile-img-alt', review.user__username);
+  ratingReview.setAttribute('profile-url', `/user/facing_page/${review.user}`);
+  ratingReview.setAttribute('user-name', review.user__username);
+  ratingReview.setAttribute('time-created', review.time);
+  ratingReview.setAttribute('user-rating', review.rating);
+  ratingReview.setAttribute('review-text', review.content);
+  ratingReview.setAttribute('review-id', review.id);
+  ratingReview.setAttribute('restaurant-id', review.restaurant__id);
+  ratingReview.setAttribute('author-id', review.user);
+  // add replies here
+  review.comments.forEach(el => {
+    ratingReview.renderReplies({
+      profile: el.user__user_profile__photo || DEFAULT_AVATAR,
+      text: el.reason,
+      author: el.user__id,
+      commentId: el.id,
+    })
+  });
+  reviewWrapper.appendChild(ratingReview);
+});
+
+const internalComments = {{ internal_comments | safe }};
+internalComments.forEach(comment => {
+  const reviewWrapper = document.getElementById('internal_comment');
+  const ratingComment= document.createElement('rating-review');
+  ratingComment.setAttribute('profile-img', comment.user__user_profile__photo);
+  ratingComment.setAttribute('profile-img-alt', comment.user__username);
+  ratingComment.setAttribute('profile-url', `/user/facing_page/${comment.user}`);
+  ratingComment.setAttribute('user-name', comment.user__username);
+  ratingComment.setAttribute('time-created', comment.time);
+  ratingComment.setAttribute('review-text', comment.text);
+  ratingComment.setAttribute('review-id', comment.id);
+  ratingComment.setAttribute('restaurant-id', comment.restaurant__id);
+  ratingComment.setAttribute('author-id', comment.user);
+  // add replies here
+  comment.comments.forEach(el => {
+    ratingComment.renderReplies({
+      profile: el.user__user_profile__photo || DEFAULT_AVATAR,
+      text: el.reason,
+      author: el.user__id,
+      commentId: el.id,
+    })
+  });
+  reviewWrapper.appendChild(ratingComment);
+});
+</script>
+
+
+
+
+{% endblock %}
+
