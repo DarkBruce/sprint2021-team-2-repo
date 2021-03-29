@@ -129,7 +129,7 @@ def get_restaurant_profile(request, restaurant_id):
         )
         if request.user.is_authenticated:
             user = request.user
-            print('URLLL', settings.MEDIA_URL)
+            print("URLLL", settings.MEDIA_URL)
             parameter_dict = {
                 "google_key": settings.GOOGLE_MAP_KEY,
                 "google_map_id": settings.GOOGLE_MAP_ID,
