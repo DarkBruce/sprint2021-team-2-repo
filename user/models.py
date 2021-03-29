@@ -161,7 +161,6 @@ class Report_Ticket_Review(models.Model):
     )
     reason = models.CharField(max_length=512)
     time = models.DateTimeField(auto_now_add=True)
-    closed = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-time"]
@@ -181,7 +180,6 @@ class Report_Ticket_Comment(models.Model):
     )
     reason = models.CharField(max_length=512)
     time = models.DateTimeField(auto_now_add=True)
-    closed = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-time"]
