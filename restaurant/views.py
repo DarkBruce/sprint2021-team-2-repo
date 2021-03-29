@@ -21,7 +21,12 @@ from user.forms import (
     Report_Review_Form,
     Report_Comment_Form,
 )
-from user.models import Review, Comment
+from user.models import (
+    Review,
+    Comment,
+    Report_Ticket_Review,
+    Report_Ticket_Comment,
+)
 
 
 from .utils import (
@@ -353,4 +358,36 @@ def report_comment(request, restaurant_id, comment_id):
         form.save()
         messages.success(request, "success")
         url = reverse("restaurant:profile", args=[restaurant_id])
+        return HttpResponseRedirect(url)
+
+
+def hide_review(request, report_id):
+    user = request.user
+    # TODO: currently using index page, should be manage page
+    url = reverse("index")
+    if user.is_staff:
+        report_ticket = Report_Ticket_Review.objects.get(pk=report_id)
+        review = report_ticket.review
+        review.hidden = True
+        report_ticket.closed = True
+        messages.success(request, "Reported review is now hidden!")
+        return HttpResponseRedirect(url)
+    else:
+        messages.warning(request, "You are not authorized to do so.")
+        return HttpResponseRedirect(url)
+
+
+def hide_comment(request, report_id):
+    user = request.user
+    # TODO: currently using index page, should be manage page
+    url = reverse("index")
+    if user.is_staff:
+        report_ticket = Report_Ticket_Comment.objects.get(pk=report_id)
+        comment = report_ticket.comment
+        comment.hidden = True
+        report_ticket.closed = True
+        messages.success(request, "Reported comment is now hidden!")
+        return HttpResponseRedirect(url)
+    else:
+        messages.warning(request, "You are not authorized to do so.")
         return HttpResponseRedirect(url)

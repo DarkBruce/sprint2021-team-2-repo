@@ -1409,7 +1409,7 @@ class CommentTest(TestCase):
 class ReportTests(TestCase):
     def setUp(self):
         self.c = Client()
-        # Initialize 2 test users
+        # Initialize 2 test users & 1 admin
         self.user1 = get_user_model().objects.create(
             username="user1",
             email="test1@gmail.com",
@@ -1423,6 +1423,13 @@ class ReportTests(TestCase):
         )
         self.user2.set_password("test4321Report")
         self.user2.save()
+        self.admin = get_user_model().objects.create(
+            username="admin",
+            email="admin@gmail.com",
+        )
+        self.admin.set_password("test1234Admin")
+        self.admin.is_superuser = True
+        self.admin.is_staff = True
 
         # Initialize temp restaurant
         self.temp_restaurant = create_restaurant(
