@@ -98,104 +98,45 @@ def register(request):
 
 def admin(request):
     if not request.user.is_staff:
+        messages.warning(request, "You are not authorized to do so.")
         return redirect("user:profile")
 
-    reported_reviewre_list = list(
-        Report_Ticket_Review.objects.all()[:50].values(
+    internal_reviews = list(
+        Report_Ticket_Review.objects.all()
+        .select_related("user")
+        .select_related("review")
+        .values(
+            "id",
             "review_id",
+            "reason",
+            "time",
+            "user__id",
+            "user__username",
+            "review__content",
         )
     )
-    Reviews = list()
-    for idx in range(len(reported_reviewre_list)):
-        review = (
-            Review.objects.filter(id=reported_reviewre_list[idx]["review_id"])
-            .select_related("user")
-            .order_by("-time")
-            .all()[:50]
-            .values(
-                "user",
-                "user__username",
-                "user__user_profile__photo",
-                "id",
-                "rating",
-                "rating_safety",
-                "rating_door",
-                "rating_table",
-                "rating_bathroom",
-                "rating_path",
-                "time",
-                "content",
-                "restaurant__restaurant_name",
-                "restaurant__yelp_detail__img_url",
-                "restaurant__id",
-            )
-            .first()
-        )
-        if review not in Reviews:
-            Reviews.append(review)
-    internal_reviews = Reviews
-    for idx in range(len(internal_reviews)):
-        Reports = list(
-            Report_Ticket_Review.objects.filter(
-                review_id=internal_reviews[idx]["id"]
-            ).values(
-                "user__user_profile__photo",
-                "reason",
-                "user__id",
-                "id",
-            )
-        )
-        internal_reviews[idx]["comments"] = Reports
 
-    reported_comment_list = list(
-        Report_Ticket_Comment.objects.all()[:50].values(
+    internal_comments = list(
+        Report_Ticket_Comment.objects.all()
+        .select_related("user")
+        .select_related("comment")
+        .values(
+            "id",
             "comment_id",
+            "reason",
+            "time",
+            "user__id",
+            "user__username",
+            "comment__text",
         )
     )
-    Comments = list()
-    for idx in range(len(reported_comment_list)):
-        comment = (
-            Comment.objects.filter(id=reported_comment_list[idx]["comment_id"])
-            .select_related("user")
-            .order_by("-time")
-            .all()[:50]
-            .values(
-                "user",
-                "user__username",
-                "user__user_profile__photo",
-                "id",
-                "time",
-                "text",
-                "review__restaurant__restaurant_name",
-                "review__restaurant__yelp_detail__img_url",
-                "review__restaurant__id",
-            )
-            .first()
-        )
-        if comment not in Comments:
-            Comments.append(comment)
-    internal_comments = Comments
-    for idx in range(len(internal_comments)):
-        Reports = list(
-            Report_Ticket_Comment.objects.filter(
-                comment_id=internal_comments[idx]["id"]
-            ).values(
-                "user__user_profile__photo",
-                "reason",
-                "user__id",
-                "id",
-            )
-        )
-        internal_comments[idx]["comments"] = Reports
-    print(internal_comments)
 
     return render(
         request=request,
         template_name="admin_comment.html",
         context={
-            "internal_reviews": json.dumps(internal_reviews, cls=DjangoJSONEncoder),
-            "internal_comments": json.dumps(internal_comments, cls=DjangoJSONEncoder),
-            "user_id": request.user.id,
+            "internal_reviews": internal_reviews,
+            "internal_comments": internal_comments,
         },
     )
 
