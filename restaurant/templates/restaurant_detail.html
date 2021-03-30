@@ -689,15 +689,6 @@
   </div>
 </section>
 <!--Insert values into HTML-->
-<style>
-.review-image {
-  display: flex !important;
-  object-fit: contain !important;
-  height: 100px !important;
-  align-items: center !important;
-}
-
-</style>
 <script>
 var inspection_data = {{ lasted_inspection | safe}};
 
@@ -1262,7 +1253,6 @@ internalReviews.forEach(review => {
   ratingReview.setAttribute('review-text', review.content);
   ratingReview.setAttribute('review-id', review.id);
   ratingReview.setAttribute('restaurant-id', restaurantId);
-  ratingReview.setAttribute('author-id', review.user);
   ratingReview.setAttribute('author-id', review.user);
   ratingReview.setAttribute('image1', 'https://dineline.s3.amazonaws.com/media/' + review.image1);
   ratingReview.setAttribute('image2', 'https://dineline.s3.amazonaws.com/media/' + review.image2);
