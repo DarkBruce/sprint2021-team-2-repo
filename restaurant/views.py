@@ -113,6 +113,7 @@ def get_restaurant_profile(request, restaurant_id):
                 "image1",
                 "image2",
                 "image3",
+                "hidden",
             )
         )
 
@@ -125,6 +126,7 @@ def get_restaurant_profile(request, restaurant_id):
                     "text": el.text,
                     "author": el.user.id,
                     "commentId": el.id,
+                    "hidden": el.hidden,
                 }
                 for el in comments
             ]
