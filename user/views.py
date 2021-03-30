@@ -22,7 +22,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth import get_user_model
 from django.utils.encoding import force_text
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 
 
 from .utils import (
@@ -96,7 +96,7 @@ def register(request):
     )
 
 
-def admin(request):
+def show_report(request):
     if not request.user.is_staff:
         messages.warning(request, "You are not authorized to do so.")
         return redirect("user:profile")
@@ -113,6 +113,9 @@ def admin(request):
             "user__id",
             "user__username",
             "review__content",
+            "review__image1",
+            "review__image2",
+            "review__image3",
         )
     )
 
