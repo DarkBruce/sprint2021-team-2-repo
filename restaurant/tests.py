@@ -1679,20 +1679,20 @@ class ReportTests(TestCase):
         # test as normal user
         self.c.login(username="user2", password="test4321Report")
         response1 = self.c.get(url)
-        report_tickets1 = Report_Ticket_Review.objects.filter(review=test_review)
-        test_review = Review.objects.filter(pk=review_id)
+        report_tickets1 = Report_Ticket_Review.objects.filter(review_id=review_id)
 
         self.assertEqual(response1.status_code, 302)
+        self.assertEqual(report_tickets1.exists(), True)
 
         self.c.logout()
 
         # test as admin
         self.c.login(username="admin", password="test1234Admin")
         response2 = self.c.get(url)
-        report_tickets2 = Report_Ticket_Review.objects.filter(review=test_review)
-        test_review = Review.objects.filter(pk=review_id)
+        report_tickets2 = Report_Ticket_Review.objects.filter(review_id=review_id)
 
         self.assertEqual(response2.status_code, 302)
+        self.assertEqual(report_tickets2.exists(), False)
 
         self.c.logout()
 
@@ -1717,20 +1717,20 @@ class ReportTests(TestCase):
         # test as normal user
         self.c.login(username="user1", password="test1234Report")
         response1 = self.c.get(url)
-        report_tickets1 = Report_Ticket_Comment.objects.filter(comment=test_comment)
-        test_comment = Comment.objects.filter(pk=comment_id)
+        report_tickets1 = Report_Ticket_Comment.objects.filter(comment_id=comment_id)
 
         self.assertEqual(response1.status_code, 302)
+        self.assertEqual(report_tickets1.exists(), True)
 
         self.c.logout()
 
         # test as admin
         self.c.login(username="admin", password="test1234Admin")
         response2 = self.c.get(url)
-        report_tickets2 = Report_Ticket_Comment.objects.filter(comment=test_comment)
-        test_comment = Comment.objects.filter(pk=comment_id)
+        report_tickets2 = Report_Ticket_Comment.objects.filter(comment_id=comment_id)
 
         self.assertEqual(response2.status_code, 302)
+        self.assertEqual(report_tickets2.exists(), False)
 
         self.c.logout()
 
