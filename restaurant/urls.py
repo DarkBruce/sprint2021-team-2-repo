@@ -67,6 +67,7 @@ urlpatterns = [
         name="delete_review_report",
     ),
     path(
+
         "report/comment/hide/<int:comment_id>",
         views.hide_comment,
         name="hide_comment",

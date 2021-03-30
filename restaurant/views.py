@@ -375,6 +375,7 @@ def report_comment(request, restaurant_id, comment_id):
 def hide_review(request, review_id):
     user = request.user
     url = reverse("user:admin_comment")
+
     if user.is_staff:
         # Close related report tickets
         if remove_reports_review(review_id):
@@ -399,6 +400,7 @@ def hide_review(request, review_id):
 def hide_comment(request, comment_id):
     user = request.user
     url = reverse("user:admin_comment")
+
     if user.is_staff:
         # Close related report tickets
         if remove_reports_comment(comment_id):
@@ -423,6 +425,7 @@ def hide_comment(request, comment_id):
 def ignore_review_report(request, review_id):
     user = request.user
     url = reverse("user:admin_comment")
+
     if user.is_staff:
         if remove_reports_review(review_id):
             messages.success(
@@ -442,6 +445,7 @@ def ignore_review_report(request, review_id):
 def ignore_comment_report(request, comment_id):
     user = request.user
     url = reverse("user:admin_comment")
+
     if user.is_staff:
         if remove_reports_comment(comment_id):
             messages.success(
