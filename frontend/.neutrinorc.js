@@ -1,11 +1,30 @@
-const reactComponents = require('@neutrinojs/react-components');
+const react = require('@neutrinojs/react');
 
 module.exports = {
   options: {
-    output: '../static/build',
     root: __dirname,
+    output: '../static/build'
   },
   use: [
-    reactComponents(),
+    react({
+      html: {
+        title: 'frontend'
+      },
+      style: {
+        extract: {
+          enabled: true,
+          loader: {
+            esModule: true,
+          },
+          plugin: {
+            filename: '[name].css',
+          },
+        }
+      },
+    }),
+    neutrino => {
+      neutrino.config.output.filename('[name].js');
+      neutrino.config.optimization.splitChunks(false);
+    },
   ],
 };
