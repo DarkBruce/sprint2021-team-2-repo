@@ -1,6 +1,9 @@
 from django.conf import settings
+from django.core.mail import EmailMessage
 from django.forms.models import model_to_dict
 from django.db.models import F
+
+
 from .models import (
     InspectionRecords,
     Restaurant,
@@ -642,3 +645,27 @@ def remove_reports_comment(comment_id):
     except Comment.DoesNotExist:
         logger.warning("Comment ID could not be found: {}".format(comment_id))
         return False
+
+
+def send_moderate_notification_email(request, user, restaurant, subject, event):
+    host_name = request.get_host()
+    # TODO: currently using public facing page as redirect page
+    base_url = "https://" + host_name + "/user/facing_page/" + str(user.id)
+
+    email_subject = "Your " + subject + "is "
+    message = "Hi " + user.username + ", \n" + "Your " + subject + \
+              " on Dineline's restaurant, " + restaurant.restaurant_name + ",  is "
+
+    operations = {
+        "report": "reported!",
+        "hide": "hidden!",
+        "delete": "deleted!",
+    }
+    operation = operations[event]
+    email_subject += operation
+    message += operation
+
+    message += ", please checkout link below for more details:\n\n" + base_url
+    email = EmailMessage(email_subject, message, to=[user.email])
+    logger.info("Send email to: %s", user.email)
+    return email.send()
