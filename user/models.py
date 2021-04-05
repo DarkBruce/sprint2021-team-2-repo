@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from restaurant.models import Restaurant, Categories
 from phonenumber_field.modelfields import PhoneNumberField
 from datetime import datetime
@@ -134,6 +136,10 @@ class Review(models.Model):
     image1 = models.ImageField(null=True, blank=True, upload_to="review_images/")
     image2 = models.ImageField(null=True, blank=True, upload_to="review_images/")
     image3 = models.ImageField(null=True, blank=True, upload_to="review_images/")
+
+    # Like
+    liked_users = models.ManyToManyField(DineSafelyUser, blank=True)
+    liked_sum = models.IntegerField(default=0, validators=[])
 
     def __str__(self):
         return f"{self.user.username} review on {self.restaurant.restaurant_name}"
