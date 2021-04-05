@@ -303,20 +303,7 @@
           </div>
           <div class="text-block">
           </div>
-
-
-{#              {% if saved_restaurants %}#}
-{#              <!-- Button trigger delete restaurant from favorite -->#}
-{#              <button type="button" class="fa fa-heart fa-2x" data-toggle="modal" data-target="#delete_favorite" id="delete_fav_button" >#}
-{#                Remove from favorite#}
-{#              </button>#}
-{#              {% else %}#}
-{#                <!-- Button trigger save restaurant as favorite -->#}
-{#                <button type="button" class="fa fa-heart fa-2x" data-toggle="modal" data-target="#save_favorite" id="save_fav_button" color="red" >#}
-{#                  Do you like this restaurant?#}
-{#                </button>#}
-{##}
-{#              {% endif %}#}
+          
         </div>
 
           <!-- Save Favorite Restaurant -->
@@ -473,41 +460,7 @@
                   <input type="text" id="restaurant_business_id" name="restaurant_business_id" value="" hidden>
                   <input type="text" id="user_id" name="user_id" value="{{user.id}}" hidden>
                   <input type="text" id="saved_on" name="saved_on"   hidden>
-                  {% comment %} <p class="mb-2">Did you receive a temperature check?</p>
-                  <div class="form-group mb-2">
-                    <input id="temp_check_true" type="radio" name="temperature_required" value="true" required/>
-                    <label for="temp_check_true" title="text">Yes</label>
-                    <input id="temp_check_false" type="radio" name="temperature_required" value="false" required/>
-                    <label for="temp_check_false" title="text">No</label>
-                  </div>
-                  <p class="mb-2">Were you or a member of your party required to provide contact tracing information?</p>
-                  <div class="form-group mb-2">
-                    <input id="contact_true" type="radio" name="contact_info_required" value="true" required/>
-                    <label for="contact_true" title="text">Yes</label>
-                    <input id="contact_false" type="radio" name="contact_info_required" value="false" required/>
-                    <label for="contact_false" title="text">No</label>
-                  </div>
-                  <p class="mb-2">Were restaurant staff wearing masks at all times?</p>
-                  <div class="form-group mb-2">
-                    <input id="employee_mask_true" type="radio" name="employee_mask" value="true" required/>
-                    <label for="employee_mask_true" title="text">Yes</label>
-                    <input id="employee_mask_false" type="radio" name="employee_mask" value="false" required/>
-                    <label for="employee_mask_false" title="text">No</label>
-                  </div>
-                  <p class="mb-2">Was in-door capacity under 25%?</p>
-                  <div class="form-group mb-2">
-                    <input id="capacity_true" type="radio" name="capacity_compliant" value="true" required/>
-                    <label for="capacity_true" title="text">Yes</label>
-                    <input id="capacity_false" type="radio" name="capacity_compliant" value="false" required/>
-                    <label for="capacity_false" title="text">No</label>
-                  </div>
-                  <p class="mb-2">Were you seated at least 6 feet from the nearest party?</p>
-                  <div class="form-group mb-2">
-                    <input id="distance_compliant_true" type="radio" name="distance_compliant" value="true" required/>
-                    <label for="distance_compliant_true" title="text">Yes</label>
-                    <input id="distance_compliant_false" type="radio" name="distance_compliant" value="false" required/>
-                    <label for="distance_compliant_false" title="text">No</label>
-                  </div> {% endcomment %}
+
                   <p class="mb-2">Tell others about your thoughts!</p>
                   <div class="form-group mb-2">
                     <textarea class="form-control" name="content" id="content" cols="30" rows="5" required></textarea>
@@ -860,18 +813,8 @@ document.forms['report-abuse'].addEventListener('submit', e => {
   }
   e.target.submit();
 });
-/**
- * Rating box view
- * @param {review-id} string
- * @param {profile-img} string
- * @param {profile-img-alt} string
- * @param {profile-url} string
- * @param {time-created} string
- * @param {user-name} string
- * @param {user-rating} string
- * @param {review-text} string
- * @param {authorId} string
- */
+
+
 class RatingReview extends HTMLElement {
   constructor () {
     super();
