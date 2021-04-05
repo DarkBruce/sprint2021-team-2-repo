@@ -7,7 +7,7 @@ import YelpReview from "./YelpReview";
 
 const App = ({yelpReviews, internalReviews}) => (
   <div className="App">
-    {yelpReviews.reviews.map((review, idx) => <YelpReview yelpReviews={review}/>)}
+    {yelpReviews.reviews.map((review, idx) => <YelpReview key={idx} yelpReviews={review}/>)}
   </div>
 );
 
