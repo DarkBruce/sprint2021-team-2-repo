@@ -4,10 +4,18 @@ import './App.css';
 
 import YelpReview from "./YelpReview";
 // import yelpReviews from "../../yelp_data.json";
-
+console.log('findmeee', yelpReviews, internalReviews);
 const App = ({yelpReviews, internalReviews}) => (
   <div className="App">
-    {yelpReviews.reviews.map((review, idx) => <YelpReview key={idx} yelpReviews={review}/>)}
+    <h6>
+      <span class="text-primary">YELP</span> REVIEWS
+    </h6>
+    {yelpReviews.reviews.map((review, idx) => <YelpReview key={idx} review={review}/>)}
+    <hr/>
+    <h6>
+      <span class="text-primary">INTERNAL</span> REVIEWS
+    </h6>
+    {internalReviews.map((review, idx) => <YelpReview key={idx} review={review} isInternal/>)}
   </div>
 );
 

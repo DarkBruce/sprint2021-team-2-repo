@@ -1,9 +1,11 @@
 .yelp__body {
-    border: 1px solid red;
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
 }
 
+.yelp__root {
+    margin-bottom: 0.5rem;
+}
 .yelp__pic_date{
 
 }
@@ -21,7 +23,7 @@
     line-height: 3rem;
 }
 .yelp__date {
-    
+    margin-top: 0.5rem;
 }
 
 .yelp__name_rating_text {
