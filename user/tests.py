@@ -614,7 +614,7 @@ class CommentTest(TestCase):
             + str(rest_id)
             + "/user_comment/"
             + str(revi_id)
-            + "/deletes"
+            + "/delete"
         )
         response = self.c.get(delete_url)
         self.assertEqual(response.status_code, 302)
