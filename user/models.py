@@ -138,11 +138,13 @@ class Review(models.Model):
     image3 = models.ImageField(null=True, blank=True, upload_to="review_images/")
 
     # Like
-    liked_users = models.ManyToManyField(DineSafelyUser, blank=True)
-    liked_sum = models.IntegerField(default=0, validators=[])
+    likes = models.ManyToManyField(DineSafelyUser, blank=True)
 
     def __str__(self):
         return f"{self.user.username} review on {self.restaurant.restaurant_name}"
+
+    def total_likes(self):
+        return self.likes.count()
 
 
 class Comment(models.Model):
