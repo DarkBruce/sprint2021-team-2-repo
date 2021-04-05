@@ -433,7 +433,6 @@ class TestUserReviewsView(BaseTest):
         self.assertEqual(response.status_code, 200)
 
 
-
 class TestForgetPasswordView(BaseTest):
     def test_forget_password_valid_email(self):
         response = self.c.post(
@@ -611,11 +610,14 @@ class CommentTest(TestCase):
         rest_id = self.temp_restaurant.id
         revi_id = self.temp_review.id
         delete_url = (
-            "/restaurant/profile/" + str(rest_id) + "/user_comment/" + str(revi_id) + "/deletes"
+            "/restaurant/profile/"
+            + str(rest_id)
+            + "/user_comment/"
+            + str(revi_id)
+            + "/deletes"
         )
         response = self.c.get(delete_url)
         self.assertEqual(response.status_code, 302)
-
 
 
 class ShowReportTests(TestCase):
