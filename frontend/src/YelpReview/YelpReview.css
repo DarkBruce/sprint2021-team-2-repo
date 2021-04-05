@@ -1,0 +1,32 @@
+.yelp__body {
+    border: 1px solid red;
+    display: flex;
+    align-items: flex-end;
+}
+
+.yelp__pic_date{
+
+}
+
+.yelp__pic {
+    object-fit: contain;
+    height: 100px;
+    border-radius: 50%
+}
+.yelp__date {
+    
+}
+
+.yelp__name_rating_text {
+    margin-left: 15px;
+    width: 350px;
+}
+
+
+
+.yelp__text {
+    display: -webkit-box; 
+    -webkit-line-clamp: 4; 
+    -webkit-box-orient: vertical; 
+    overflow: hidden;
+}
