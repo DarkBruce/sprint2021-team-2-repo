@@ -1224,6 +1224,7 @@ class RatingReview extends HTMLElement {
         this.rootDiv.style.opacity = 0.5;
       }
       this.attachOptionButton({ authorId: Number(newValue || '') });
+      this.attachHeart();
     } else if (name === 'hidden-flag') {
       if (!newValue) return;
       this.container.removeChild(this.optionButtonWrapper);
@@ -1246,6 +1247,28 @@ class RatingReview extends HTMLElement {
       var modalImg = document.getElementById("img01");
       modalImg.src = this.image3.src;
     }
+  }
+
+  attachHeart () {
+    const reviewId = this.getAttribute('review-id');
+    if (!reviewId || !userId) return;
+    const wrapper = document.createElement('div');
+    const likeButton = document.createElement('i');
+    likeButton.setAttribute('class', 'fa fa-heart text-muted d-blcok');
+    likeButton.setAttribute('style', 'cursor: pointer');
+    likeButton.addEventListener('click', e => {
+      fetch('/restaurant/like/review/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'content-type': 'application/json',
+          'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value
+        },
+        body: JSON.stringify({ 'review_id': reviewId })
+      })
+    });
+    wrapper.appendChild(likeButton);
+    this.comments.appendChild(wrapper);
   }
 
   attachOptionButton ({ authorId }) {
