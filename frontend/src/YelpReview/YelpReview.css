@@ -35,14 +35,18 @@
     overflow: hidden;
 }
 
-.review__image {
+.review__image__container > img {
     flex: 1 1 auto;
     width: auto;
-    height: 100px !important;
+    height: 80px !important;
     display: inline-block;
     object-fit: contain;
     align-items: center;
-    margin-left: 0.5rem;
+    cursor: pointer;
+}
+
+.review__image__container > img:not(:first-child) {
+    margin-left: 0.3rem;
 }
 
 .dropdown__icon {

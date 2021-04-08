@@ -8,12 +8,12 @@ import YelpReview from "./YelpReview";
 const App = ({yelpReviews, internalReviews}) => (
   <div className="App">
     <h6>
-      <span class="text-primary">YELP</span> REVIEWS
+      <span className="text-primary">YELP</span> REVIEWS
     </h6>
     {yelpReviews.reviews.map((review, idx) => <YelpReview key={idx} review={review}/>)}
     <hr/>
     <h6>
-      <span class="text-primary">INTERNAL</span> REVIEWS
+      <span className="text-primary">INTERNAL</span> REVIEWS
     </h6>
     {internalReviews.map((review, idx) => <YelpReview key={idx} review={review} isInternal/>)}
   </div>
