@@ -14,7 +14,27 @@ const formatDate = d => {
     return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
 };
 
-export default ({ review, isInternal }) => {
+const RatingFooter = ({ isInternal, onLikeClick, liked, likesCount, isAuthor, hidden }) => {
+    if (hidden) {
+        return (
+            isAuthor ? <em className="text-danger d-inline-block" style={{fontSize: '0.6rem', lineHeight: '0.8rem'}}>
+                This post is only visible to you because it violates our terms of service
+            </em> : null
+        );
+    }
+    return (
+        isInternal ? (
+            <div>
+                <i className="btn p-0" onClick={onLikeClick}>
+                    <FontAwesomeIcon icon={faHeart} className={`${liked ? 'text-primary' : 'text-secondary'}`}/>
+                </i>
+                <span className="pl-3">{ likesCount }</span>
+            </div>
+        ) : null
+    );
+};
+
+export default ({ review, restaurantId, userId, isInternal }) => {
     const data = {
         id: isInternal ? review.id : null,
         userId: isInternal ? review.user : null,
@@ -36,6 +56,7 @@ export default ({ review, isInternal }) => {
     const [showCreateComment, setShowCreateComment] = useState(false);
     const [liked, setLiked] = useState(isInternal ? review.liked : null);
     const [likesCount, setLikesCount] = useState(isInternal ? review.likes_num : 0);
+    const isAuthor = data.userId === userId;
 
     const onReplyClick = e => {
         e.preventDefault();
@@ -49,6 +70,8 @@ export default ({ review, isInternal }) => {
         // Add this to communicate with non-react code
         if (typeof $ === 'undefined') return;
         $('#report-abuse-modal').modal('show');
+        __data__.reportAbuse.type = REPORT_TYPE.REVIEW;
+        __data__.reportAbuse.id = data.id;
     };
 
     const onEditClick = e => {
@@ -102,10 +125,11 @@ export default ({ review, isInternal }) => {
         modalImg.src = img;
     };
 
+    if (data.hidden && !isAuthor) return null;
     return (
         <div className="yelp__root mt-2" onMouseLeave={() => setShowDropdown(false)}>
             <div className="yelp__body d-block d-sm-flex">
-                <div className="yelp__pic_date">
+                <div className="yelp__pic_date" style={{ opacity: data.hidden ? 0.5 : 1 }}>
                     <div>
                         <img src={data.profilePic || DEFAULT_AVATAR} className="yelp__pic p-2"/>
                     </div>
@@ -113,7 +137,7 @@ export default ({ review, isInternal }) => {
                         {data.time}
                     </div>
                 </div>
-                <div className = "yelp__name_rating_text text-muted">
+                <div className = "yelp__name_rating_text text-muted" style={{ opacity: data.hidden ? 0.5 : 1 }}>
                     <div className="yelp__name">
                         <a href={data.reviewUrl}>
                             {data.userName}
@@ -132,36 +156,34 @@ export default ({ review, isInternal }) => {
                         { data.image2 ? <img className="review__image" src={new URL(data.image2, AWS_S3_MDEIA).href} onClick={() => onImageClick(new URL(data.image2, AWS_S3_MDEIA).href)}/> : null }
                         { data.image3 ? <img className="review__image" src={new URL(data.image3, AWS_S3_MDEIA).href} onClick={() => onImageClick(new URL(data.image3, AWS_S3_MDEIA).href)}/> : null }
                     </div>
-                    {
-                        isInternal ? (
-                            <div>
-                                <i className="btn p-0" onClick={onLikeClick}>
-                                    <FontAwesomeIcon icon={faHeart} className={`${liked ? 'text-primary' : 'text-secondary'}`}/>
-                                </i>
-                                <span className="pl-3">{ likesCount }</span>
-                            </div>
-                        ) : null
-                    }
+                    <RatingFooter
+                        isInternal
+                        onLikeClick={onLikeClick}
+                        liked={liked}
+                        likesCount={likesCount}
+                        isAuthor
+                        hidden={data.hidden}
+                    />
                 </div>
                 {
                     isInternal ? (
                         <div className="dropdown">
                             <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" className="dropdown-toggle dropdown__icon" type="button" onClick={() => setShowDropdown(true)}><g><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></g></svg>
                             <div className={`dropdown-menu p-0 ${showDropdown ? 'show' : ''}`}>
-                                <a className="dropdown-item small py-2" href="#" onClick={onEditClick}>Edit</a>
-                                <a className="dropdown-item small py-2" href="#" onClick={onDeleteClick}>Delete</a>
-                                <a className="dropdown-item small py-2" href="#" onClick={onReplyClick}>Reply</a>
-                                <a className="dropdown-item small py-2" href="#" onClick={onReportClick}>Report</a>
+                                <a className={`dropdown-item small py-2 ${isAuthor ? '' : 'd-none'}`} href="#" onClick={onEditClick}>Edit</a>
+                                <a className={`dropdown-item small py-2 ${isAuthor ? '' : 'd-none'}`} href="#" onClick={onDeleteClick}>Delete</a>
+                                <a className={`dropdown-item small py-2 ${data.hidden ? 'd-none' : ''}`} href="#" onClick={onReplyClick}>Reply</a>
+                                <a className={`dropdown-item small py-2 ${isAuthor ? 'd-none' : ''}`} href="#" onClick={onReportClick}>Report</a>
                             </div>
                         </div>
                     ) : null
                 }
             </div>
             { data.comments.map((el, index) => {
-                return <CommentBox key={index} {...el} onReport={onReportClick} />;
+                return <CommentBox key={index} {...el} userId={userId} restaurantId={restaurantId} reviewId={data.id} onReport={onReportClick} />;
               })
             }
-            { showCreateComment ? <CommentBox onClose={() => setShowCreateComment(false)} /> : null }
+            { showCreateComment ? <CommentBox userId={userId} restaurantId={restaurantId} reviewId={data.id} onClose={() => setShowCreateComment(false)} /> : null }
         </div>
     )
 };
