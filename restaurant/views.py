@@ -12,7 +12,7 @@ import random
 from .models import Restaurant, FAQ
 
 from .forms import (
-    # QuestionnaireForm,
+    QuestionnaireForm,
     SearchFilterForm,
 )
 from user.forms import (
@@ -72,6 +72,16 @@ def get_restaurant_profile(request, restaurant_id):
             return HttpResponseRedirect(url)
         else:
             messages.error(request, "Please login before making review")
+            return HttpResponseRedirect(url)
+
+    if request.method == "POST" and "questionnaire_form" in request.POST:
+        form = QuestionnaireForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, "Thank you for your feedback!", extra_tags="feedback"
+            )
+            url = reverse("restaurant:profile", args=[restaurant_id])
             return HttpResponseRedirect(url)
 
     try:
