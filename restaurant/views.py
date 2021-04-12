@@ -292,12 +292,13 @@ def get_restaurant_profile(request, restaurant_id):
 def edit_review(request, restaurant_id, review_id, action, source):
     if action == "delete":
         Review.objects.filter(id=review_id).delete()
+        messages.success(request, "Your review is removed!")
     if action == "put":
         review = Review.objects.get(id=review_id)
         review.rating = request.POST.get("rating")
         review.content = request.POST.get("content")
         review.save()
-        messages.success(request, "success")
+        messages.success(request, "Your review is saved!")
     if source == "restaurant":
         return HttpResponseRedirect(reverse("restaurant:profile", args=[restaurant_id]))
     if source == "user":
@@ -322,11 +323,13 @@ def edit_comment(request, restaurant_id, review_id):
     comment.text = request.GET.get("text")
     comment.time = datetime.now()
     comment.save()
+    messages.success(request, "Your comment is saved!")
     return HttpResponseRedirect(reverse("restaurant:profile", args=[restaurant_id]))
 
 
 def delete_comment(request, restaurant_id, comment_id):
     Comment.objects.get(pk=comment_id).delete()
+    messages.success(request, "Your comment is removed!")
     return HttpResponseRedirect(reverse("restaurant:profile", args=[restaurant_id]))
 
 
