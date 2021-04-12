@@ -296,6 +296,7 @@ def edit_review(request, restaurant_id, review_id, action, source):
         review = Review.objects.get(id=review_id)
         review.rating = request.POST.get("rating")
         review.content = request.POST.get("content")
+        review.hidden = False
         review.save()
         messages.success(request, "success")
     if source == "restaurant":
