@@ -78,7 +78,10 @@ def get_restaurant_profile(request, restaurant_id):
         ).count()
 
         if lastday_reviews_num_rest > 0:
-            messages.error(request, "Sorry, you've made a review for this restaurant within last 24 hours.")
+            messages.error(
+                request,
+                "Sorry, you've made a review for this restaurant within last 24 hours.",
+            )
         elif lastday_reviews_num_user >= 2:
             messages.error(request, "Sorry, you've made 2 reviews within last 24 hours")
         elif request.user.is_authenticated:

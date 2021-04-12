@@ -1462,7 +1462,9 @@ class ReviewTests(BaseTest):
         }
 
         response1 = self.c.post(url1, form)
-        review_count_1 = Review.objects.filter(user=self.user1, restaurant=self.temp_restaurant).count()
+        review_count_1 = Review.objects.filter(
+            user=self.user1, restaurant=self.temp_restaurant
+        ).count()
         self.assertEqual(response1.status_code, 302)
         self.assertEqual(review_count_1, 1)
 
