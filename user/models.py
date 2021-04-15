@@ -1,14 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from restaurant.models import Restaurant, Categories
 from phonenumber_field.modelfields import PhoneNumberField
-
 from datetime import datetime
+
+
+class Preferences(models.Model):
+    preference_type = models.CharField(max_length=200, default="")
+    value = models.CharField(max_length=200, default="")
+    display_value = models.CharField(max_length=200, default="")
+
+    def __str__(self):
+        return "{}: {}".format(self.preference_type, self.value)
 
 
 class DineSafelyUser(AbstractUser):
     favorite_restaurants = models.ManyToManyField(Restaurant, blank=True)
-    preferences = models.ManyToManyField(Categories, blank=True)
+    preferences = models.ManyToManyField(Preferences, blank=True)
     current_location = models.CharField(
         max_length=200, default=None, blank=True, null=True
     )
@@ -127,8 +137,14 @@ class Review(models.Model):
     image2 = models.ImageField(null=True, blank=True, upload_to="review_images/")
     image3 = models.ImageField(null=True, blank=True, upload_to="review_images/")
 
+    # Like
+    likes = models.ManyToManyField(DineSafelyUser, blank=True)
+
     def __str__(self):
         return f"{self.user.username} review on {self.restaurant.restaurant_name}"
+
+    def total_likes(self):
+        return self.likes.count()
 
 
 class Comment(models.Model):
@@ -188,3 +204,73 @@ class Report_Ticket_Comment(models.Model):
         reporter = self.user.username
         reported_user = self.comment.user.username
         return f"{reporter}'s report ticket on {reported_user}'s comment"
+
+
+class RestaurantQuestion(models.Model):
+    user = models.ForeignKey(
+        DineSafelyUser, on_delete=models.CASCADE, related_name="questions"
+    )
+    restaurant = models.ForeignKey(
+        Restaurant, on_delete=models.CASCADE, related_name="questions"
+    )
+    time = models.DateTimeField(default=datetime.now, editable=False, db_index=True)
+    question = models.TextField()
+
+    def __str__(self):
+        return f"{self.user.username} question for {self.restaurant.restaurant_name}"
+
+
+class RestaurantAnswer(models.Model):
+    user = models.ForeignKey(
+        DineSafelyUser, on_delete=models.CASCADE, related_name="answers"
+    )
+    question = models.ForeignKey(
+        RestaurantQuestion, on_delete=models.CASCADE, related_name="answers"
+    )
+    text = models.CharField(max_length=512)
+    time = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-time"]
+
+    def __str__(self):
+        answer_user = self.user.username
+        question_user = self.question.user.username
+        restaurant = self.question.restaurant.restaurant_name
+        return f"{answer_user} answered {question_user}'s question for {restaurant}"
+
+
+class UserActivityLog(models.Model):
+    user = models.ForeignKey(
+        DineSafelyUser, on_delete=models.CASCADE, related_name="activity_log"
+    )
+    restaurant = models.ForeignKey(
+        Restaurant, on_delete=models.CASCADE, related_name="activity_log"
+    )
+    visits = models.PositiveIntegerField(default=1)
+    last_visit = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-last_visit"]
+
+    def __str__(self):
+        user = self.user.username
+        restaurant = self.restaurant.restaurant_name
+        return (
+            f"{user} viewed {restaurant} {self.visits} times, "
+            + f"last visited at {self.last_visit}"
+        )
+
+
+class Email(models.Model):
+    user = models.ForeignKey(
+        DineSafelyUser, on_delete=models.CASCADE, related_name="other_emails"
+    )
+    email = models.EmailField()
+    active = models.BooleanField(default=False)
+
+    def __str__(self):
+        if self.active:
+            return f"{self.user} {self.email} is active"
+        else:
+            return f"{self.user} {self.email} is not active"

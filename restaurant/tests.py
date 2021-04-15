@@ -18,11 +18,15 @@ from .models import (
     AccessibilityRecord,
     FAQ,
 )
+from user.models import Preferences, UserActivityLog
 from .views import (
     get_inspection_info,
     get_landing_page,
     get_restaurant_profile,
     get_faqs_list,
+    get_ask_community_page,
+    answer_community_question,
+    remove_duplicate,
 )
 from .utils import (
     merge_yelp_info,
@@ -38,15 +42,18 @@ from .utils import (
     questionnaire_report,
     questionnaire_statistics,
     check_user_location,
+    restaurants_to_dict,
 )
 
-from dinesafelysite.views import index
+from dinesafelysite.views import index, get_recent_views_recommendation
 
 from user.models import (
     Review,
     Comment,
     Report_Ticket_Review,
     Report_Ticket_Comment,
+    RestaurantQuestion,
+    RestaurantAnswer,
 )
 
 
@@ -127,7 +134,7 @@ def create_faq(question, answer):
     return FAQ.objects.create(question=question, answer=answer)
 
 
-def create_internal_review(user, restaurant, content, rating):
+def create_review(user, restaurant, content, rating):
     return Review.objects.create(
         user=user,
         restaurant=restaurant,
@@ -635,7 +642,7 @@ class UserQuestionnaireFormTests(BaseTest):
         form = QuestionnaireForm(self.form)
         response = self.c.post("/restaurant/profile/1/", self.form)
         self.assertTrue(form.is_valid())
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
 
 
 class SearchFilterFormTests(BaseTest):
@@ -838,6 +845,53 @@ class RestaurantViewTests(TestCase):
         )
         response = get_faqs_list(request)
         self.assertEqual(response.status_code, 200)
+
+    def test_create_activity_log(self):
+        request = self.factory.get("restaurant:profile")
+        request.restaurant = self.restaurant
+        request.user = get_user_model().objects.create(
+            username="myuser",
+            email="abcd@gmail.com",
+        )
+        empty_activity_log = UserActivityLog.objects.filter(
+            restaurant=request.restaurant, user=request.user
+        ).first()
+        response = get_restaurant_profile(request, self.restaurant.id)
+        activity_log = UserActivityLog.objects.filter(
+            restaurant=request.restaurant, user=request.user
+        ).first()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(empty_activity_log, None)
+        self.assertEqual(activity_log.visits, 1)
+        self.assertEqual(activity_log.restaurant, request.restaurant)
+        self.assertEqual(activity_log.user, request.user)
+
+    def test_update_activity_log(self):
+        request = self.factory.get("restaurant:profile")
+        request.restaurant = self.restaurant
+        request.user = get_user_model().objects.create(
+            username="myuser",
+            email="abcd@gmail.com",
+        )
+        # First profile page visit
+        get_restaurant_profile(request, self.restaurant.id)
+        activity_log = UserActivityLog.objects.filter(
+            restaurant=request.restaurant, user=request.user
+        ).first()
+        self.assertEqual(activity_log.visits, 1)
+        self.assertEqual(activity_log.restaurant, request.restaurant)
+        self.assertEqual(activity_log.user, request.user)
+        old_time = activity_log.last_visit
+        # Second profile page visit
+        get_restaurant_profile(request, self.restaurant.id)
+        activity_log = UserActivityLog.objects.filter(
+            restaurant=request.restaurant, user=request.user
+        ).first()
+        new_time = activity_log.last_visit
+        self.assertTrue(new_time > old_time)
+        self.assertEqual(activity_log.visits, 2)
+        self.assertEqual(activity_log.restaurant, request.restaurant)
+        self.assertEqual(activity_log.user, request.user)
 
 
 class RestaurantUtilsTests(TestCase):
@@ -1279,13 +1333,32 @@ class RestaurantRecommendationsTest(TestCase):
     def setUp(self):
         Categories.objects.create(category="chinese", parent_category="chinese")
         Categories.objects.create(category="wine-bar", parent_category="bars")
+        p1 = Preferences.objects.create(
+            preference_type="category", value="pizza", display_value="Pizza"
+        )
+        p2 = Preferences.objects.create(
+            preference_type="rating", value="4", display_value="4 Stars"
+        )
+        p3 = Preferences.objects.create(
+            preference_type="neighbourhood", value="Jamaica", display_value="Jamaica"
+        )
+        p4 = Preferences.objects.create(
+            preference_type="price", value="price_3", display_value="$$$"
+        )
+        p5 = Preferences.objects.create(
+            preference_type="compliance",
+            value="COVIDCompliant",
+            display_value="COVID-19 Compliant",
+        )
         self.dummy_user = get_user_model().objects.create(
             username="myuser",
             email="abcd@gmail.com",
         )
-        category_list = ["chinese", "wine-bar"]
-        for category in category_list:
-            self.dummy_user.preferences.add(Categories.objects.get(category=category))
+        self.dummy_user.preferences.add(p1)
+        self.dummy_user.preferences.add(p2)
+        self.dummy_user.preferences.add(p3)
+        self.dummy_user.preferences.add(p4)
+        self.dummy_user.preferences.add(p5)
 
         self.dummy_user2 = get_user_model().objects.create(
             username="myuser2",
@@ -1296,13 +1369,17 @@ class RestaurantRecommendationsTest(TestCase):
 
     def test_recommendation(self):
 
-        categories = [
-            category.category for category in self.dummy_user.preferences.all()
+        preferences = [
+            preference.value for preference in self.dummy_user.preferences.all()
         ]
-        categories.sort()
-        self.assertEqual(len(self.dummy_user.preferences.all()), 2)
-        self.assertEqual(categories[0], "chinese")
-        self.assertEqual(categories[1], "wine-bar")
+
+        preferences.sort()
+        self.assertEqual(len(self.dummy_user.preferences.all()), 5)
+        self.assertEqual(preferences[0], "4")
+        self.assertEqual(preferences[1], "COVIDCompliant")
+        self.assertEqual(preferences[2], "Jamaica")
+        self.assertEqual(preferences[3], "pizza")
+        self.assertEqual(preferences[4], "price_3")
         self.assertIsNotNone(self.dummy_user2.preferences.all())
         self.assertEqual(len(self.dummy_user2.preferences.all()), 0)
 
@@ -1320,20 +1397,128 @@ class RestaurantRecommendationsTest(TestCase):
         self.assertEqual(response2.status_code, 200)
 
 
+class ReviewTests(BaseTest):
+    def setUp(self):
+        self.c = Client()
+        # Initialize 2 test users
+        self.user1 = get_user_model().objects.create(
+            username="user1",
+            email="test1@gmail.com",
+        )
+        self.user1.set_password("test1234Reviews")
+        self.user1.save()
+
+        self.user2 = get_user_model().objects.create(
+            username="user2",
+            email="test2@gmail.com",
+        )
+        self.user2.set_password("test4321Report")
+        self.user2.save()
+
+        # Initialize temp restaurant
+        self.temp_restaurant = create_restaurant(
+            restaurant_name="Tacos El Paisa",
+            business_address="1548 St. Nicholas btw West 187th street and west 188th "
+            "street, Manhattan, NY",
+            yelp_detail=None,
+            postcode="10040",
+            business_id="WavvLdfdP6g8aZTtbBQHTw",
+        )
+        self.temp_restaurant.save()
+
+        # Initialize temp review
+        self.temp_review = create_review(
+            self.user1,
+            self.temp_restaurant,
+            "review for tests",
+            5,
+        )
+        self.temp_review.save()
+
+    def test_add_review(self):
+        self.c.login(username="user1", password="test1234Reviews")
+
+        restaurant = create_restaurant(
+            restaurant_name="Gary Danko",
+            business_address="800 N Point St",
+            yelp_detail=None,
+            postcode="94109",
+            business_id="WavvLdfdP6g8aZTtbBQHTx",
+        )
+        create_review(self.user1, restaurant, "test adding review", 5)
+
+        # test adding review for the same restaurant within 24 hours
+        url1 = "/restaurant/profile/" + str(self.temp_restaurant.id) + "/"
+        form = {
+            "user_id": str(self.user1.id),
+            "rating": 5,
+            "rating_safety": 5,
+            "rating_entry": 5,
+            "rating_door": 5,
+            "rating_table": 5,
+            "rating_bathroom": 5,
+            "rating_path": 5,
+            "content": "test adding review",
+        }
+
+        response1 = self.c.post(url1, form)
+        review_count_1 = Review.objects.filter(
+            user=self.user1, restaurant=self.temp_restaurant
+        ).count()
+        self.assertEqual(response1.status_code, 302)
+        self.assertEqual(review_count_1, 1)
+
+        # test adding review for 2 or more different restaurants within 24 hours
+        url2 = "/restaurant/profile/" + str(restaurant.id) + "/"
+
+        response2 = self.c.post(url2, form)
+        review_count_2 = Review.objects.filter(user=self.user1).count()
+        self.assertEqual(response2.status_code, 302)
+        self.assertEqual(review_count_2, 2)
+
+        self.c.logout()
+
+    def test_like_review(self):
+        self.c.login(username="user2", password="test4321Report")
+        url = "/restaurant/like/review/"
+        form = {"review_id": self.temp_review.id}
+
+        # First post, like the review
+        response1 = self.c.post(url, form)
+        self.assertEqual(response1.status_code, 200)
+        self.assertEqual(response1.json()["liked"], True)
+        self.assertEqual(response1.json()["likes_num"], 1)
+        self.assertEqual(self.temp_review.total_likes(), 1)
+
+        # Second post, undo the like
+        response2 = self.c.post(url, form)
+        self.assertEqual(response2.status_code, 200)
+        self.assertEqual(response2.json()["liked"], False)
+        self.assertEqual(response2.json()["likes_num"], 0)
+        self.assertEqual(self.temp_review.total_likes(), 0)
+
+        # Third post with invalid form
+        # invalid_form = {"review_id": 1000}
+        # response3 = self.c.post(url, invalid_form)
+        # self.assertEqual(response3.status_code, 404)
+
+        self.c.logout()
+
+
 @mock.patch("user.models.Review.objects")
-class EditCommentTests(BaseTest):
-    def test_edit_comment(self, queryset):
+class EditReviewTests(BaseTest):
+    def test_edit_review(self, queryset):
         queryset.delete.return_value = None
         queryset.filter.return_value = queryset
         response = self.c.get(
-            "/restaurant/profile/restaurant_id/comment/comment_id/delete"
+            "/restaurant/profile/restaurant_id/review/comment_id/delete/restaurant"
         )
         self.assertEqual(response.status_code, 302)
 
-    def test_delete_comment(self, queryset):
+    def test_delete_review(self, queryset):
         queryset.get.return_value = mock.Mock(spec=Review)
         response = self.c.get(
-            "/restaurant/profile/restaurant_id/comment/comment_id/put"
+            "/restaurant/profile/restaurant_id/review/comment_id/put/restaurant"
         )
         self.assertEqual(response.status_code, 302)
 
@@ -1342,12 +1527,12 @@ class CreateCommentTest(BaseTest):
     @mock.patch("user.models.Review.objects")
     @mock.patch("user.models.Comment.__init__", mock.Mock(return_value=None))
     @mock.patch("user.models.Comment.save", mock.Mock(return_value=None))
-    def test_edit_comment(self, queryset):
+    def test_edit_comment_guest(self, queryset):
         queryset.get.return_value = None
         response = self.c.get(
             "/restaurant/profile/restaurant_id/comment_edit/review_id"
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 403)
 
 
 class DeleteCommentTest(BaseTest):
@@ -1384,7 +1569,7 @@ class CommentTest(TestCase):
         self.temp_restaurant.save()
 
         # Initialize temp review
-        self.temp_review = create_internal_review(
+        self.temp_review = create_review(
             self.dummy_user,
             self.temp_restaurant,
             "review for tests",
@@ -1405,11 +1590,24 @@ class CommentTest(TestCase):
         response = self.c.get(delete_url)
         self.assertEqual(response.status_code, 302)
 
+    def test_add_comment_loggedin(self):
+        self.c.login(username="testuser", password="test1234Comment")
+        form = {
+            "text": "test adding comment",
+        }
+        response = self.c.get(
+            "/restaurant/profile/restaurant_id/comment_edit/"
+            + str(self.temp_review.id),
+            form,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.c.logout()
+
 
 class ReportTests(TestCase):
     def setUp(self):
         self.c = Client()
-        # Initialize 2 test users
+        # Initialize 2 test users & 1 admin
         self.user1 = get_user_model().objects.create(
             username="user1",
             email="test1@gmail.com",
@@ -1424,6 +1622,15 @@ class ReportTests(TestCase):
         self.user2.set_password("test4321Report")
         self.user2.save()
 
+        self.admin = get_user_model().objects.create(
+            username="admin",
+            email="admin@gmail.com",
+        )
+        self.admin.set_password("test1234Admin")
+        self.admin.is_superuser = True
+        self.admin.is_staff = True
+        self.admin.save()
+
         # Initialize temp restaurant
         self.temp_restaurant = create_restaurant(
             restaurant_name="Tacos El Paisa",
@@ -1436,7 +1643,7 @@ class ReportTests(TestCase):
         self.temp_restaurant.save()
 
         # Initialize temp review
-        self.temp_review = create_internal_review(
+        self.temp_review = create_review(
             self.user1,
             self.temp_restaurant,
             "review for tests",
@@ -1448,6 +1655,7 @@ class ReportTests(TestCase):
         self.temp_comment = create_comment(
             self.user2, self.temp_review, "comment for test report functions"
         )
+        self.temp_comment.save()
 
     def test_report_review_model(self):
         report_ticket_review = create_report_review(
@@ -1489,6 +1697,239 @@ class ReportTests(TestCase):
         }
         response = self.c.post(url, form)
         self.assertEqual(response.status_code, 302)
+        self.c.logout()
+
+    def test_hide_review(self):
+        test_review = create_review(
+            self.user1,
+            self.temp_restaurant,
+            "review for hide review tests, I'm hate speech",
+            5,
+        )
+        test_review.save()
+        report_tickets_before = []
+        for i in range(3):
+            report_ticket = create_report_review(self.user2, test_review, "hate speech")
+            report_ticket.save()
+            report_tickets_before.append(report_ticket)
+
+        review_id = test_review.id
+        url = "/restaurant/report/review/hide/" + str(review_id)
+
+        # test as normal user
+        self.c.login(username="user2", password="test4321Report")
+        response1 = self.c.get(url)
+        report_tickets1 = Report_Ticket_Review.objects.filter(review=test_review)
+        test_review = Review.objects.get(pk=review_id)
+
+        self.assertEqual(response1.status_code, 302)
+        self.assertEqual(test_review.hidden, False)
+        self.assertEqual(report_tickets1.exists(), True)
+
+        self.c.logout()
+
+        # test as admin
+        self.c.login(username="admin", password="test1234Admin")
+        response2 = self.c.get(url)
+        report_tickets2 = Report_Ticket_Review.objects.filter(review=test_review)
+        test_review = Review.objects.get(pk=review_id)
+
+        self.assertEqual(response2.status_code, 302)
+        self.assertEqual(test_review.hidden, True)
+        self.assertEqual(report_tickets2.exists(), False)
+
+        self.c.logout()
+
+    def test_hide_comment(self):
+        test_comment = create_comment(
+            self.user2,
+            self.temp_review,
+            "comment for test hiding comments, I'm hate speech",
+        )
+        test_comment.save()
+        report_tickets_before = []
+        for i in range(3):
+            report_ticket = create_report_comment(
+                self.user1, test_comment, "hate speech"
+            )
+            report_ticket.save()
+            report_tickets_before.append(report_ticket)
+
+        comment_id = test_comment.id
+        url = "/restaurant/report/comment/hide/" + str(comment_id)
+
+        # test as normal user
+        self.c.login(username="user1", password="test1234Report")
+        response1 = self.c.get(url)
+        report_tickets1 = Report_Ticket_Comment.objects.filter(comment=test_comment)
+        test_comment = Comment.objects.get(pk=comment_id)
+
+        self.assertEqual(response1.status_code, 302)
+        self.assertEqual(test_comment.hidden, False)
+        self.assertEqual(report_tickets1.exists(), True)
+
+        self.c.logout()
+
+        # test as admin
+        self.c.login(username="admin", password="test1234Admin")
+        response2 = self.c.get(url)
+        report_tickets2 = Report_Ticket_Comment.objects.filter(comment=test_comment)
+        test_comment = Comment.objects.get(pk=comment_id)
+
+        self.assertEqual(response2.status_code, 302)
+        self.assertEqual(test_comment.hidden, True)
+        self.assertEqual(report_tickets2.exists(), False)
+
+        self.c.logout()
+
+    def test_ignore_review_report(self):
+        test_review = create_review(
+            self.user1,
+            self.temp_restaurant,
+            "review for hide review tests, I'm hate speech",
+            5,
+        )
+        test_review.save()
+        report_tickets_before = []
+        for i in range(3):
+            report_ticket = create_report_review(self.user2, test_review, "hate speech")
+            report_ticket.save()
+            report_tickets_before.append(report_ticket)
+
+        review_id = test_review.id
+        url = "/restaurant/report/review/ignore/" + str(review_id)
+
+        # test as normal user
+        self.c.login(username="user2", password="test4321Report")
+        response1 = self.c.get(url)
+        report_tickets1 = Report_Ticket_Review.objects.filter(review=test_review)
+
+        self.assertEqual(response1.status_code, 302)
+        self.assertEqual(report_tickets1.exists(), True)
+
+        self.c.logout()
+
+        # test as admin
+        self.c.login(username="admin", password="test1234Admin")
+        response2 = self.c.get(url)
+        report_tickets2 = Report_Ticket_Review.objects.filter(review=test_review)
+
+        self.assertEqual(response2.status_code, 302)
+        self.assertEqual(report_tickets2.exists(), False)
+
+        self.c.logout()
+
+    def test_ignore_comment_report(self):
+        test_comment = create_comment(
+            self.user2,
+            self.temp_review,
+            "comment for test hiding comments, I'm hate speech",
+        )
+        test_comment.save()
+        report_tickets_before = []
+        for i in range(3):
+            report_ticket = create_report_comment(
+                self.user1, test_comment, "hate speech"
+            )
+            report_ticket.save()
+            report_tickets_before.append(report_ticket)
+
+        comment_id = test_comment.id
+        url = "/restaurant/report/comment/ignore/" + str(comment_id)
+
+        # test as normal user
+        self.c.login(username="user1", password="test1234Report")
+        response1 = self.c.get(url)
+        report_tickets1 = Report_Ticket_Comment.objects.filter(comment=test_comment)
+
+        self.assertEqual(response1.status_code, 302)
+        self.assertEqual(report_tickets1.exists(), True)
+
+        self.c.logout()
+
+        # test as admin
+        self.c.login(username="admin", password="test1234Admin")
+        response2 = self.c.get(url)
+        report_tickets2 = Report_Ticket_Comment.objects.filter(comment=test_comment)
+
+        self.assertEqual(response2.status_code, 302)
+        self.assertEqual(report_tickets2.exists(), False)
+
+        self.c.logout()
+
+    def test_delete_review_report(self):
+        test_review = create_review(
+            self.user1,
+            self.temp_restaurant,
+            "review for delete review tests, I'm hate speech",
+            5,
+        )
+        test_review.save()
+        report_tickets_before = []
+        for i in range(3):
+            report_ticket = create_report_review(self.user2, test_review, "hate speech")
+            report_ticket.save()
+            report_tickets_before.append(report_ticket)
+
+        review_id = test_review.id
+        url = "/restaurant/report/review/delete/" + str(review_id)
+
+        # test as normal user
+        self.c.login(username="user2", password="test4321Report")
+        response1 = self.c.get(url)
+        report_tickets1 = Report_Ticket_Review.objects.filter(review_id=review_id)
+
+        self.assertEqual(response1.status_code, 302)
+        self.assertEqual(report_tickets1.exists(), True)
+
+        self.c.logout()
+
+        # test as admin
+        self.c.login(username="admin", password="test1234Admin")
+        response2 = self.c.get(url)
+        report_tickets2 = Report_Ticket_Review.objects.filter(review_id=review_id)
+
+        self.assertEqual(response2.status_code, 302)
+        self.assertEqual(report_tickets2.exists(), False)
+
+        self.c.logout()
+
+    def test_delete_comment_report(self):
+        test_comment = create_comment(
+            self.user2,
+            self.temp_review,
+            "comment for test delete comments, I'm hate speech",
+        )
+        test_comment.save()
+        report_tickets_before = []
+        for i in range(3):
+            report_ticket = create_report_comment(
+                self.user1, test_comment, "hate speech"
+            )
+            report_ticket.save()
+            report_tickets_before.append(report_ticket)
+
+        comment_id = test_comment.id
+        url = "/restaurant/report/comment/delete/" + str(comment_id)
+
+        # test as normal user
+        self.c.login(username="user1", password="test1234Report")
+        response1 = self.c.get(url)
+        report_tickets1 = Report_Ticket_Comment.objects.filter(comment_id=comment_id)
+
+        self.assertEqual(response1.status_code, 302)
+        self.assertEqual(report_tickets1.exists(), True)
+
+        self.c.logout()
+
+        # test as admin
+        self.c.login(username="admin", password="test1234Admin")
+        response2 = self.c.get(url)
+        report_tickets2 = Report_Ticket_Comment.objects.filter(comment_id=comment_id)
+
+        self.assertEqual(response2.status_code, 302)
+        self.assertEqual(report_tickets2.exists(), False)
+
         self.c.logout()
 
 
@@ -1818,3 +2259,513 @@ class SortTest(TestCase):
         self.assertEqual(
             self.restaurant3.business_id, filtered_restaurants[2].business_id
         )
+
+
+class AskCommunityTest(TestCase):
+    """ Test Restaurant Q&As Feature """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.c = Client()
+        self.dummy_user = get_user_model().objects.create(
+            username="myuser",
+            email="abcd@gmail.com",
+        )
+        self.dummy_user.set_password("pass123")
+        self.dummy_user.save()
+
+        self.restaurant = create_restaurant(
+            restaurant_name="Paint N Pour Nyc",
+            business_address="2080 FREDERICK DOUGLASS BLVD",
+            yelp_detail=None,
+            postcode="10026",
+            business_id="5qWjq_Qv6O6-iGdbBZb0tg",
+        )
+
+        self.question = RestaurantQuestion.objects.create(
+            user=self.dummy_user,
+            restaurant=self.restaurant,
+            question="Test question",
+        )
+
+        self.answer = RestaurantAnswer.objects.create(
+            user=self.dummy_user,
+            question=self.question,
+            text="Test answer",
+        )
+
+    def test_get_ask_community_page(self):
+        response = self.c.get(
+            "/restaurant/profile/" + str(self.restaurant.id) + "/ask_community/1"
+        )
+        self.assertEqual(response.resolver_match.func, get_ask_community_page)
+        self.assertEqual(response.status_code, 200)
+        question_list = RestaurantQuestion.objects.filter(restaurant=self.restaurant)
+        self.assertEqual(question_list.count(), 1)
+        self.assertEqual(question_list[0], self.question)
+
+    def test_post_question(self):
+        # Anonymous user cannot post question
+        # Should redirect to login page
+        form = {
+            "question": "How is this business operating during COVID-19?",
+        }
+        response = self.c.post(
+            "/restaurant/profile/" + str(self.restaurant.id) + "/ask_community/1", form
+        )
+        self.assertEqual(response.resolver_match.func, get_ask_community_page)
+        self.assertRedirects(
+            response,
+            "/user/login",
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True,
+        )
+        question_list = RestaurantQuestion.objects.filter(restaurant=self.restaurant)
+        self.assertEqual(question_list.count(), 1)
+        self.assertEqual(question_list[0], self.question)
+
+        # Registered user can post question
+        # Should redirect to ask community page
+        self.c.login(username="myuser", password="pass123")
+        form = {
+            "question": "How is this business operating during COVID-19?",
+        }
+        response = self.c.post(
+            "/restaurant/profile/" + str(self.restaurant.id) + "/ask_community/1", form
+        )
+        self.assertEqual(response.resolver_match.func, get_ask_community_page)
+        self.assertRedirects(
+            response,
+            "/restaurant/profile/" + str(self.restaurant.id) + "/ask_community/1",
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True,
+        )
+        question_list = RestaurantQuestion.objects.filter(restaurant=self.restaurant)
+        self.assertEqual(question_list.count(), 2)
+        self.assertEqual(question_list[0].question, "Test question")
+        self.assertEqual(
+            question_list[1].question, "How is this business operating during COVID-19?"
+        )
+        self.c.logout()
+
+    def test_get_answer_community_page(self):
+        response = self.c.get(
+            "/restaurant/profile/"
+            + str(self.restaurant.id)
+            + "/question/"
+            + str(self.question.id)
+            + "/1"
+        )
+        self.assertEqual(response.resolver_match.func, answer_community_question)
+        self.assertEqual(response.status_code, 200)
+        answer_list = RestaurantAnswer.objects.filter(question=self.question)
+        self.assertEqual(answer_list.count(), 1)
+        self.assertEqual(answer_list[0], self.answer)
+
+    def test_post_answer(self):
+        # Anonymous user cannot post answer
+        # Should redirect to login page
+        form = {
+            "answer": "They are open for takeout and delivery.",
+        }
+        response = self.c.post(
+            "/restaurant/profile/"
+            + str(self.restaurant.id)
+            + "/question/"
+            + str(self.question.id)
+            + "/1",
+            form,
+        )
+        self.assertEqual(response.resolver_match.func, answer_community_question)
+        self.assertRedirects(
+            response,
+            "/user/login",
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True,
+        )
+        answer_list = RestaurantAnswer.objects.filter(question=self.question)
+        self.assertEqual(answer_list.count(), 1)
+        self.assertEqual(answer_list[0], self.answer)
+
+        # Registered user can post answer
+        # Should redirect to answer community page
+        self.c.login(username="myuser", password="pass123")
+        form = {
+            "answer": "They are open for takeout and delivery.",
+        }
+        response = self.c.post(
+            "/restaurant/profile/"
+            + str(self.restaurant.id)
+            + "/question/"
+            + str(self.question.id)
+            + "/1",
+            form,
+        )
+        self.assertEqual(response.resolver_match.func, answer_community_question)
+        self.assertRedirects(
+            response,
+            "/restaurant/profile/"
+            + str(self.restaurant.id)
+            + "/question/"
+            + str(self.question.id)
+            + "/1",
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True,
+        )
+        answer_list = RestaurantAnswer.objects.filter(question=self.question)
+        self.assertEqual(answer_list.count(), 2)
+        self.assertEqual(answer_list[0].text, "They are open for takeout and delivery.")
+        self.assertEqual(answer_list[1].text, "Test answer")
+        self.c.logout()
+
+
+class SimilarRestaurantsTest(TestCase):
+    """ Test Similar Restaurant Recommendation"""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        # Create 1st Restaurant
+        business_id = "blaTQKod-nz94F3Fm_ZoYQ"
+        neighborhood = "Central Harlem"
+        price = "$$$"
+        rating = 4.5
+        img_url = "https://s3-media3.fl.yelpcdn.com/bphoto/xafcmRm6DDvcg7PYDrwICA/o.jpg"
+        latitude = 40.80251
+        longitude = -73.95355
+        restaurant_name = "Osteria Laura NYC"
+        business_address = "1890 Adam Clayton Powell Jr. Blvd."
+        postcode = "10026"
+
+        details = create_yelp_restaurant_details(
+            business_id,
+            neighborhood,
+            price,
+            rating,
+            img_url,
+            latitude,
+            longitude,
+        )
+
+        self.restaurant1 = Restaurant.objects.create(
+            restaurant_name=restaurant_name,
+            business_address=business_address,
+            yelp_detail=details,
+            postcode=postcode,
+            business_id=business_id,
+            compliant_status="Compliant",
+        )
+
+        # Create 2nd restaurant
+        restaurant_name = "Paint N Pour Nyc"
+        business_address = "2080 FREDERICK DOUGLASS BLVD"
+        business_id = "5qWjq_Qv6O6-iGdbBZb0tg"
+        neighborhood = "Central Harlem"
+        postcode = "10026"
+        price = "$"
+        rating = 5.0
+        img_url = "https://s3-media3.fl.yelpcdn.com/bphoto/pol6YeUS-47wemNAP6V2Mg/o.jpg"
+        latitude = 40.80211
+        longitude = -73.95665
+
+        details_2 = create_yelp_restaurant_details(
+            business_id,
+            neighborhood,
+            price,
+            rating,
+            img_url,
+            latitude,
+            longitude,
+        )
+
+        self.restaurant2 = Restaurant.objects.create(
+            restaurant_name=restaurant_name,
+            business_address=business_address,
+            yelp_detail=details_2,
+            postcode=postcode,
+            business_id=business_id,
+            compliant_status="Compliant",
+        )
+
+        # Create 3rd restaurant
+        restaurant_name = "67 Orange Street"
+        business_address = "2082 Frederick Douglass Blvd"
+        business_id = "DzlCEhXW6OadK6ETcmJpwQ"
+        neighborhood = "Chelsea"
+        price = "$$"
+        postcode = ("10027",)
+        rating = 4.0
+        img_url = "https://s3-media4.fl.yelpcdn.com/bphoto/zyKuc6OmXL8W-gWnu9sMHw/o.jpg"
+        latitude = 40.8022697271481
+        longitude = -73.9567852020264
+
+        details_3 = create_yelp_restaurant_details(
+            business_id,
+            neighborhood,
+            price,
+            rating,
+            img_url,
+            latitude,
+            longitude,
+        )
+        self.restaurant3 = Restaurant.objects.create(
+            restaurant_name=restaurant_name,
+            business_address=business_address,
+            yelp_detail=details_3,
+            postcode=postcode,
+            business_id=business_id,
+            compliant_status="Compliant",
+        )
+
+        self.dummy_user = get_user_model().objects.create(
+            username="myuser",
+            email="abcd@gmail.com",
+        )
+
+    def test_recommendation(self):
+        # Assert Equal the right restaurants are returned
+        similar_restaurants = get_filtered_restaurants(
+            neighborhood=["Central Harlem"], compliant="Compliant"
+        )
+
+        restaurant1 = similar_restaurants[0]
+        restaurant2 = similar_restaurants[1]
+
+        self.assertEqual("5qWjq_Qv6O6-iGdbBZb0tg", restaurant1.business_id)
+        self.assertEqual("blaTQKod-nz94F3Fm_ZoYQ", restaurant2.business_id)
+
+    def test_restaurant_profile_view(self):
+        request = self.factory.get("restaurant:profile")
+
+        request.restaurant = self.restaurant1
+        request.user = self.dummy_user
+        response = get_restaurant_profile(request, self.restaurant1.id)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_restaurant_duplicate(self):
+        restaurants = restaurants_to_dict(
+            [self.restaurant1, self.restaurant2, self.restaurant3]
+        )
+        business_id = self.restaurant2.business_id
+
+        restaurant_list = remove_duplicate(restaurants, business_id)
+
+        self.assertEqual(len(restaurant_list), 2)
+        self.assertListEqual(
+            restaurant_list, restaurants_to_dict([self.restaurant1, self.restaurant3])
+        )
+
+
+class RecentViewsRecommendationTest(TestCase):
+    """ Test provide recommended restaurant based on user recent views """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        # Create 1st restaurant
+        business_id = "5qWjq_Qv6O6-iGdbBZb0tg"
+        neighborhood = "Chelsea and Clinton"
+        price = "$"
+        rating = 5.0
+        img_url = "https://s3-media3.fl.yelpcdn.com/bphoto/pol6YeUS-47wemNAP6V2Mg/o.jpg"
+        latitude = 40.80211
+        longitude = -73.95665
+
+        details_1 = create_yelp_restaurant_details(
+            business_id,
+            neighborhood,
+            price,
+            rating,
+            img_url,
+            latitude,
+            longitude,
+        )
+        self.restaurant1 = create_restaurant(
+            restaurant_name="Paint N Pour Nyc",
+            business_address="2080 FREDERICK DOUGLASS BLVD",
+            yelp_detail=details_1,
+            postcode="10026",
+            business_id="5qWjq_Qv6O6-iGdbBZb0tg",
+        )
+        self.restaurant1.compliant_status = "Compliant"
+        self.restaurant1.mopd_compliance_status = "Non-Compliant"
+        self.restaurant1.save()
+
+        create_inspection_records(
+            restaurant_inspection_id=1,
+            restaurant_name="Paint N Pour Nyc",
+            postcode="10026",
+            business_address="2080 FREDERICK DOUGLASS BLVD",
+            is_roadway_compliant="Compliant",
+            skipped_reason="Nan",
+            inspected_on=datetime(2020, 10, 24, 17, 36),
+            business_id="5qWjq_Qv6O6-iGdbBZb0tg",
+        )
+
+        # Create 2nd restaurant
+        business_id = "blaTQKod-nz94F3Fm_ZoYQ"
+        neighborhood = "Upper East Side"
+        price = "$$$"
+        rating = 4.5
+        img_url = "https://s3-media3.fl.yelpcdn.com/bphoto/xafcmRm6DDvcg7PYDrwICA/o.jpg"
+        latitude = 40.80251
+        longitude = -73.95355
+
+        details_2 = create_yelp_restaurant_details(
+            business_id,
+            neighborhood,
+            price,
+            rating,
+            img_url,
+            latitude,
+            longitude,
+        )
+        self.restaurant2 = create_restaurant(
+            restaurant_name="Osteria Laura NYC",
+            business_address="1890 Adam Clayton Powell Jr. Blvd.",
+            yelp_detail=details_2,
+            postcode="10026",
+            business_id="blaTQKod-nz94F3Fm_ZoYQ",
+        )
+        self.restaurant2.compliant_status = "Compliant"
+        self.restaurant2.mopd_compliance_status = "Non-Compliant"
+        self.restaurant2.save()
+
+        create_inspection_records(
+            restaurant_inspection_id=2,
+            restaurant_name="Osteria Laura NYC",
+            postcode="10026",
+            business_address="1890 Adam Clayton Powell Jr. Blvd.",
+            is_roadway_compliant="Compliant",
+            skipped_reason="Nan",
+            inspected_on=datetime(2020, 10, 24, 17, 36),
+            business_id="blaTQKod-nz94F3Fm_ZoYQ",
+        )
+
+        # Create 3rd restaurant
+        business_id = "DzlCEhXW6OadK6ETcmJpwQ"
+        neighborhood = "Lower East Side"
+        price = "$$"
+        rating = 4.0
+        img_url = "https://s3-media4.fl.yelpcdn.com/bphoto/zyKuc6OmXL8W-gWnu9sMHw/o.jpg"
+        latitude = 40.8022697271481
+        longitude = -73.9567852020264
+
+        details_3 = create_yelp_restaurant_details(
+            business_id,
+            neighborhood,
+            price,
+            rating,
+            img_url,
+            latitude,
+            longitude,
+        )
+        self.restaurant3 = create_restaurant(
+            restaurant_name="67 Orange Street",
+            business_address="2082 Frederick Douglass Blvd",
+            yelp_detail=details_3,
+            postcode="10027",
+            business_id="DzlCEhXW6OadK6ETcmJpwQ",
+        )
+        self.restaurant3.compliant_status = "Compliant"
+        self.restaurant3.mopd_compliance_status = "Compliant"
+        self.restaurant3.save()
+
+        create_inspection_records(
+            restaurant_inspection_id=3,
+            restaurant_name="67 Orange Street",
+            postcode="10027",
+            business_address="2082 Frederick Douglass Blvd",
+            is_roadway_compliant="Compliant",
+            skipped_reason="Nan",
+            inspected_on=datetime(2020, 10, 24, 17, 36),
+            business_id="DzlCEhXW6OadK6ETcmJpwQ",
+        )
+
+        # Create 4th restaurant
+        business_id = "WavvLdfdP6g8aZTtbBQHTw"
+        neighborhood = "Lower East Side"
+        price = "$"
+        rating = 4.0
+        img_url = "https://s3-media1.fl.yelpcdn.com/bphoto/C4emY32GDusdMCybR6NmpQ/o.jpg"
+        latitude = 40.8522129
+        longitude = -73.8290069
+
+        details_4 = create_yelp_restaurant_details(
+            business_id,
+            neighborhood,
+            price,
+            rating,
+            img_url,
+            latitude,
+            longitude,
+        )
+        self.restaurant4 = create_restaurant(
+            restaurant_name="Tacos El Paisa",
+            business_address="1548 St. Nicholas btw West 187th street and west 188th street, Manhattan, NY",
+            yelp_detail=details_4,
+            postcode="10040",
+            business_id="WavvLdfdP6g8aZTtbBQHTw",
+        )
+        self.restaurant4.compliant_status = "Compliant"
+        self.restaurant4.mopd_compliance_status = "Non-Compliant"
+        self.restaurant4.save()
+
+        create_inspection_records(
+            restaurant_inspection_id=4,
+            restaurant_name="Tacos El Paisa",
+            postcode="10040",
+            business_address="1548 St. Nicholas btw West 187th street and west 188th street, Manhattan, NY",
+            is_roadway_compliant="Compliant",
+            skipped_reason="Nan",
+            inspected_on=datetime(2020, 10, 24, 17, 36),
+            business_id="WavvLdfdP6g8aZTtbBQHTw",
+        )
+
+        self.c = Client()
+        self.dummy_user = get_user_model().objects.create(
+            username="myuser",
+            email="abcd@gmail.com",
+        )
+        self.dummy_user.set_password("pass123")
+        self.dummy_user.save()
+
+    def test_get_recent_views_recommendation(self):
+        # Manually setting visits, ONLY FOR TESTING PURPOSE!!!
+        UserActivityLog.objects.create(
+            user=self.dummy_user,
+            restaurant=self.restaurant1,
+            visits=100,
+        )
+        # Force update the last_visit time, ONLY FOR TESTING PURPOSE!!!
+        UserActivityLog.objects.filter(restaurant=self.restaurant1).update(
+            last_visit=datetime(2011, 5, 18, 10, 59, 42, 518352),
+        )
+        # Manually setting visits, ONLY FOR TESTING PURPOSE!!!
+        UserActivityLog.objects.create(
+            user=self.dummy_user,
+            restaurant=self.restaurant2,
+            visits=5,
+        )
+        # Force update the last_visit time, ONLY FOR TESTING PURPOSE!!!
+        UserActivityLog.objects.filter(restaurant=self.restaurant2).update(
+            last_visit=datetime(2018, 12, 2, 5, 10, 23, 518399),
+        )
+        # Manually setting visits, ONLY FOR TESTING PURPOSE!!!
+        UserActivityLog.objects.create(
+            user=self.dummy_user,
+            restaurant=self.restaurant3,
+            visits=18,
+            last_visit=datetime.now(),
+        )
+        suggested_restaurant_list = get_recent_views_recommendation(self.dummy_user)
+        self.assertEqual(suggested_restaurant_list[0], self.restaurant3)
+        self.assertEqual(suggested_restaurant_list[1], self.restaurant4)
+        self.assertEqual(suggested_restaurant_list[2], self.restaurant1)
+        self.assertEqual(suggested_restaurant_list[3], self.restaurant2)
