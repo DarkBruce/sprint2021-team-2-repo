@@ -140,7 +140,7 @@ export default ({ review, restaurantId, userId, isInternal }) => {
     if (data.hidden && !isAuthor) return null;
     return (
         <div className="yelp__root mt-2 position-relative" onMouseLeave={() => setShowDropdown(false)}>
-            <div className={`alert alert-danger fade ${showAlert ? 'show' : ''}`} style={{ zIndex: 100, position: 'absolute', top: '10%', left: '30%' }}>Please login first</div>
+            { showAlert ? <div className={`alert alert-danger fade show`} style={{ zIndex: 100, position: 'absolute', top: '10%', left: '30%' }}>Please login first</div> : null }
             <div className="yelp__body d-block d-sm-flex">
                 <div className="yelp__pic_date" style={{ opacity: data.hidden ? 0.5 : 1 }}>
                     <div className="text-center">
