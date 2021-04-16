@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls import handler404, handler500, handler403
 
+
 urlpatterns = [
     path("", views.index, name="index"),
     path("terms/", views.terms, name="terms"),
@@ -29,6 +30,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("chatbot/", include("chatbot.urls")),
 ]
+
 
 handler404 = "dinesafelysite.views.custom_error_404"  # noqa: F811
 handler500 = "dinesafelysite.views.custom_error_500"  # noqa: F811
