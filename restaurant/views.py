@@ -111,16 +111,6 @@ def get_restaurant_profile(request, restaurant_id):
             url = reverse("restaurant:profile", args=[restaurant_id])
             return HttpResponseRedirect(url)
 
-    if request.method == "POST" and "employee_mask" in request.POST:
-        form = QuestionnaireForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(
-                request, "Thank you for your feedback!", extra_tags="feedback"
-            )
-            url = reverse("restaurant:profile", args=[restaurant_id])
-            return HttpResponseRedirect(url)
-
     try:
         csv_file = get_csv_from_github()
         result = {}
