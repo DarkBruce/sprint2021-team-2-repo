@@ -117,6 +117,7 @@ export default ({ review, restaurantId, userId, isInternal }) => {
             }
         }).then(res => {
             if (res.ok) {
+                alert("Review has been Deleted");
                 location.reload();
             }
         });

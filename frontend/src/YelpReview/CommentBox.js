@@ -11,7 +11,10 @@ export default ({ text, userId, author, restaurantId, reviewId, profile, comment
   const textInput = useRef(null);
   const onDeleteClick = e => {
     fetch(`/restaurant/profile/${restaurantId}/comment_delete/${commentId}`).then(res => {
-      if (res.ok) location.reload();
+      if (res.ok) {
+        alert("Comment has been Deleted");
+        location.reload();
+      }
     });
   };
   const onReplyClick = e => {
