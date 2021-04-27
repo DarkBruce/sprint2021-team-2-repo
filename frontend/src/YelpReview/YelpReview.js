@@ -109,7 +109,7 @@ export default ({ review, restaurantId, userId, isInternal }) => {
     const onDeleteClick = e => {
         e.preventDefault();
         setShowDropdown(false);
-        alert("Review has been Deleted");
+        
         fetch(`/restaurant/profile/${restaurantId}/review/${data.id}/restaurant`, { 
             method: 'DELETE', 
             credentials: 'include',
@@ -118,7 +118,8 @@ export default ({ review, restaurantId, userId, isInternal }) => {
             }
         }).then(res => {
             if (res.ok) {                
-                location.reload();                
+                location.reload();   
+                alert("Review has been Deleted");             
             }
         });
     };

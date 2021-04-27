@@ -10,12 +10,13 @@ const DEFAULT_PROFILE_PIC = 'https://s3-media3.fl.yelpcdn.com/photo/O8CmQtEeOUvM
 export default ({ text, userId, author, restaurantId, reviewId, profile, commentId, hidden, onClose, onReport }) => {
   const textInput = useRef(null);
   const onDeleteClick = e => {
-    alert("Comment has been Deleted");
+    
     
     fetch(`/restaurant/profile/${restaurantId}/comment_delete/${commentId}`).then(res => {
       if (res.ok) {
         
         location.reload();
+        alert("Comment has been Deleted");
         
       }
     });
