@@ -1005,7 +1005,7 @@ class TestUserActivityLogModel(BaseTest):
 
 
 class TestEmailModel(BaseTest):
-    """ Test Email Model """
+    """Test Email Model"""
 
     def test_email_str_function(self):
         email = "test@test.com"
@@ -1023,7 +1023,7 @@ class TestEmailModel(BaseTest):
 
 
 class TestAddUserEmailForm(BaseTest):
-    """ Test AddUserEmailForm """
+    """Test AddUserEmailForm"""
 
     def test_add_email_form_invalid(self):
         # Test invalid email
@@ -1049,7 +1049,7 @@ class TestAddUserEmailForm(BaseTest):
 
 
 class TestAddUserEmailView(BaseTest):
-    """ Test Add & Verify User Email View """
+    """Test Add & Verify User Email View"""
 
     def test_add_email_view(self):
         self.c.login(username="myuser", password="pass123")
@@ -1135,7 +1135,7 @@ class TestAddUserEmailView(BaseTest):
 
 
 class TestDeleteUserEmailView(BaseTest):
-    """ Test Delete User Primary and Other Emails View """
+    """Test Delete User Primary and Other Emails View"""
 
     def test_delete_primary_email_view(self):
         self.c.login(username="myuser", password="pass123")
