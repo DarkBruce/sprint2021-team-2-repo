@@ -46,6 +46,7 @@ from .utils import (
 )
 
 from dinesafelysite.views import index, get_recent_views_recommendation
+from user.views import view_history
 
 from user.models import (
     Review,
@@ -730,7 +731,7 @@ class SearchFilterFormTests(BaseTest):
 
 
 class RestaurantViewTests(TestCase):
-    """ Test Restaurant Views """
+    """Test Restaurant Views"""
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -1211,7 +1212,7 @@ class RestaurantUtilsTests(TestCase):
 
 
 class IntegratedInspectionRestaurantsTests(TestCase):
-    """ Test Restaurant Views """
+    """Test Restaurant Views"""
 
     def test_valid_get_latest_inspections(self):
         restaurant = create_restaurant(
@@ -1283,7 +1284,7 @@ class IntegratedInspectionRestaurantsTests(TestCase):
 
 
 class GetFilteredRestaurantsTests(TestCase):
-    """ Test Filter Restaurants module"""
+    """Test Filter Restaurants module"""
 
     def test_get_filtered_restaurants(self):
         cat = Categories.objects.create(category="wine_bar", parent_category="bars")
@@ -1328,7 +1329,7 @@ class GetFilteredRestaurantsTests(TestCase):
 
 
 class RestaurantRecommendationsTest(TestCase):
-    """ Test Recommend Restaurants module"""
+    """Test Recommend Restaurants module"""
 
     def setUp(self):
         Categories.objects.create(category="chinese", parent_category="chinese")
@@ -1934,7 +1935,7 @@ class ReportTests(TestCase):
 
 
 class FAQTest(TestCase):
-    """ Test FAQ Model"""
+    """Test FAQ Model"""
 
     def setUp(self):
         self.faq1 = FAQ.objects.create(
@@ -1987,7 +1988,7 @@ class FAQTest(TestCase):
 
 
 class SortTest(TestCase):
-    """ Test Sort by rating/price/distance Feature """
+    """Test Sort by rating/price/distance Feature"""
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -2262,7 +2263,7 @@ class SortTest(TestCase):
 
 
 class AskCommunityTest(TestCase):
-    """ Test Restaurant Q&As Feature """
+    """Test Restaurant Q&As Feature"""
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -2349,6 +2350,24 @@ class AskCommunityTest(TestCase):
         self.assertEqual(
             question_list[1].question, "How is this business operating during COVID-19?"
         )
+        # Post invalid/empty question, request failed
+        empty_form = {
+            "question": "",
+        }
+        response = self.c.post(
+            "/restaurant/profile/" + str(self.restaurant.id) + "/ask_community/1",
+            empty_form,
+        )
+        self.assertEqual(response.resolver_match.func, get_ask_community_page)
+        self.assertRedirects(
+            response,
+            "/restaurant/profile/" + str(self.restaurant.id) + "/ask_community/1",
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True,
+        )
+        question_list = RestaurantQuestion.objects.filter(restaurant=self.restaurant)
+        self.assertEqual(question_list.count(), 2)
         self.c.logout()
 
     def test_get_answer_community_page(self):
@@ -2421,11 +2440,37 @@ class AskCommunityTest(TestCase):
         self.assertEqual(answer_list.count(), 2)
         self.assertEqual(answer_list[0].text, "They are open for takeout and delivery.")
         self.assertEqual(answer_list[1].text, "Test answer")
+        # Post invalid/empty answer, request failed
+        empty_form = {
+            "answer": "",
+        }
+        response = self.c.post(
+            "/restaurant/profile/"
+            + str(self.restaurant.id)
+            + "/question/"
+            + str(self.question.id)
+            + "/1",
+            empty_form,
+        )
+        self.assertEqual(response.resolver_match.func, answer_community_question)
+        self.assertRedirects(
+            response,
+            "/restaurant/profile/"
+            + str(self.restaurant.id)
+            + "/question/"
+            + str(self.question.id)
+            + "/1",
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=True,
+        )
+        answer_list = RestaurantAnswer.objects.filter(question=self.question)
+        self.assertEqual(answer_list.count(), 2)
         self.c.logout()
 
 
 class SimilarRestaurantsTest(TestCase):
-    """ Test Similar Restaurant Recommendation"""
+    """Test Similar Restaurant Recommendation"""
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -2563,7 +2608,7 @@ class SimilarRestaurantsTest(TestCase):
 
 
 class RecentViewsRecommendationTest(TestCase):
-    """ Test provide recommended restaurant based on user recent views """
+    """Test provide recommended restaurant based on user recent views"""
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -2769,3 +2814,10 @@ class RecentViewsRecommendationTest(TestCase):
         self.assertEqual(suggested_restaurant_list[1], self.restaurant4)
         self.assertEqual(suggested_restaurant_list[2], self.restaurant1)
         self.assertEqual(suggested_restaurant_list[3], self.restaurant2)
+
+        # Test get recent views history
+        self.c.login(username="myuser", password="pass123")
+        response = self.c.get("/user/view_history/1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.resolver_match.func, view_history)
+        self.c.logout()
