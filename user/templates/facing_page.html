@@ -492,7 +492,12 @@ zoomModal.style.display = "none";
 <script>
   $(document).ready(() => {
     const DEFAULT_PROFILE_PIC = 'https://s3-media3.fl.yelpcdn.com/photo/O8CmQtEeOUvMTFk0iMn5sw/o.jpg';
-    const profilePic = '{{ profile_pic }}' || DEFAULT_PROFILE_PIC;
+    let profilePic = null;
+    if ('{{ profile_pic }}' == 'None') {
+        profilePic = DEFAULT_PROFILE_PIC;
+    } else {
+        profilePic = '{{ profile_pic }}';
+    }
     $('#profile-pic-preview').attr('src', profilePic);
     $('#avatar').attr('src', profilePic);
     $('#profile-pic').change(event => {
