@@ -108,26 +108,22 @@ export default ({ review, restaurantId, userId, isInternal }) => {
 
     const onDeleteClick = e => {
         const conf = confirm("Are you sure you want to delete your review?");
-            if (conf == true) {
-            e.preventDefault();
-            setShowDropdown(false);
-            
-            fetch(`/restaurant/profile/${restaurantId}/review/${data.id}/restaurant`, { 
-                method: 'DELETE', 
-                credentials: 'include',
-                headers: {
-                    'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]')?.value
-                }
-            }).then(res => {
-                if (res.ok) {                
-                    location.reload();   
-                    // alert("Review has been Deleted");             
-                }
-            });
-        }
-        else {
-            console.log('passed')
-        }
+        if (conf == true) {
+          e.preventDefault();
+          setShowDropdown(false);
+
+          fetch(`/restaurant/profile/${restaurantId}/review/${data.id}/restaurant`, { 
+              method: 'DELETE', 
+              credentials: 'include',
+              headers: {
+                  'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]')?.value
+              }
+          }).then(res => {
+              if (res.ok) {                
+                  location.reload();        
+              }
+          });
+      }
     };
 
     const onLikeClick = () => {

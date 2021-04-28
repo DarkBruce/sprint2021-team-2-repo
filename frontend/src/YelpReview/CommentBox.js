@@ -14,15 +14,9 @@ export default ({ text, userId, author, restaurantId, reviewId, profile, comment
     if (conf == true) {
       fetch(`/restaurant/profile/${restaurantId}/comment_delete/${commentId}`).then(res => {
         if (res.ok) {
-          
           location.reload();
-          // alert("Comment has been Deleted");
-          
         }
       });
-    }
-    else {
-      console.log('did not delete comment')
     }
   };
   const onReplyClick = e => {
