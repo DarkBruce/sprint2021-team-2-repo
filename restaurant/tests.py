@@ -1461,7 +1461,6 @@ class ReviewTests(BaseTest):
         )
         self.assertEqual(review_count, 1)
 
-
     def test_add_review(self):
         self.c.login(username="user1", password="test1234Reviews")
 
